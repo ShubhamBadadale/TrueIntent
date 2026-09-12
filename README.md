@@ -251,3 +251,10 @@ escalate a legitimate-looking transfer once coercion evidence is correlated
 - [`docs/coverage.md`](docs/coverage.md) — test coverage report
 - [`docs/architecture.md`](docs/architecture.md) — system architecture
 - [`data/README.md`](data/README.md) / [`data/schema.md`](data/schema.md) — dataset status & schemas
+- [`docs/DEMO_SCRIPT.md`](docs/DEMO_SCRIPT.md) — 5-minute live demo script (evaluation day)
+
+> **Spec §13 deliverable mapping:** working prototype (this repo, Docker included), GitHub repo +
+> setup instructions (here), test suite with coverage (above), demo script (`docs/DEMO_SCRIPT.md`).
+> The prose final report (related work, full results narrative) is a separate written submission —
+> its technical chapters already exist as `docs/DECISIONS.md`, `docs/LIMITATIONS.md`,
+> `docs/coverage.md`, and `docs/architecture.md`.

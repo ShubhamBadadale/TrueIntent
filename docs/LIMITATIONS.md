@@ -71,6 +71,11 @@ self-reported and trivially gameable.
 - **Docker packaging** (spec §7, optional): implemented (`docker compose up --build` serves
   :5173 → :8000, verified from a fresh clone); native setup remains via `setup.ps1`/`setup.sh`.
 - **LIME fallback** (spec §5/§10 "SHAP (or LIME as fallback)"): only heuristic fallbacks exist.
+- **WHOIS / domain-age lookup** (implied by the spec §10 example phrase "registered recently"):
+  never implemented — Module B judges domains by structure and destination content only, so a
+  freshly-registered lookalike domain and a compromised old domain score the same on that axis.
+- **Security-header inspection** (spec §5 "basic security headers"): not implemented — destination
+  analysis covers redirect chains and login-form presence only.
 - **Precision/Recall/F1/FPR for the unified score, false-negative study on calm messages, Module D
   ablation** (spec §11): not yet measurable without labeled B/C data — the evaluation section of the
   final report should own this gap explicitly.

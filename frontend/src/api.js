@@ -5,7 +5,7 @@ export const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 export const SERVER_UNREACHABLE =
   "We couldn't reach the analysis server. Please make sure the backend is running " +
-  '(python run-backend.ps1, http://localhost:8000) and try again.'
+  '(run .\\run-backend.ps1, http://localhost:8000) and try again.'
 
 function humanizeDetail(detail, fallback) {
   if (!detail) return fallback
