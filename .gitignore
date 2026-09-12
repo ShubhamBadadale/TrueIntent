@@ -75,3 +75,6 @@ data/raw/*
 
 # Antigravity / Agent runtime artifacts
 .gemini/
+
+# Local installer binaries (not part of the project)
+*.exe

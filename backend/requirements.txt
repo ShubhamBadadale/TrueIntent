@@ -9,3 +9,5 @@ pandas
 numpy
 pytest
 python-multipart
+httpx
+pytest-cov
