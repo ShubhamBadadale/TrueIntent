@@ -184,6 +184,20 @@ Errors are clear 4xx with human-readable messages (malformed URL → 422, missin
 unreadable image → 400, OCR engine missing → 503) — never raw stack traces. The API skips live page
 fetching (`fetch_live_page=False`) for deterministic, offline-safe responses.
 
+### Run with Docker (no local setup needed)
+
+Requires only Docker with Compose v2. Verified from a fresh clone with no cached dependencies:
+
+```bash
+docker compose up --build
+```
+
+- Frontend demo: `http://localhost:5173` · Backend API/docs: `http://localhost:8000` (`/docs`)
+- The backend image installs the Tesseract binary and retrains Module A deterministically at build
+  time, so the demo works with zero local data or models.
+- Stop with `docker compose down -v`. To target a remote backend, rebuild the frontend with
+  `docker compose build --build-arg VITE_API_URL=http://<host>:8000`.
+
 ---
 
 ## Running the tests

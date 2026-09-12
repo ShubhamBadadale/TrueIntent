@@ -81,9 +81,11 @@ user-facing limitations live in [`LIMITATIONS.md`](LIMITATIONS.md).
 - **Evidence:** `.gitignore`, ADR-001.
 - **Consequence:** Reviewers retrain Module A locally (`ml/train_module_a.py` regenerates deterministically).
 
-## D-11 — Spec deltas: no database, no frontend tests, no Docker
+## D-11 — Spec deltas: no database, no frontend tests (Docker since added)
 - **Decision:** Deferred SPEC §7 items with no implementation: SQLite (nothing is persisted at all —
-  consistent with privacy-by-design), React Testing Library (no frontend test runner is configured),
-  Docker packaging. Backend coverage is pytest + TestClient + pytest-cov instead.
+  consistent with privacy-by-design) and React Testing Library (no frontend test runner is configured).
+  Docker packaging (§7, "optional") **is** implemented: `backend/Dockerfile` (retrains Module A
+  deterministically at build, ships the Tesseract binary), `frontend/Dockerfile`,
+  `docker-compose.yml` — verified end-to-end from a fresh clone with no cached dependencies.
 - **Evidence:** Absence in repo; `backend/requirements.txt` (pytest, httpx, pytest-cov), `docs/coverage.md`.
 - **Consequence:** Stated as limitations, not silent omissions.

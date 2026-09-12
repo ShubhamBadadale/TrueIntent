@@ -68,7 +68,8 @@ self-reported and trivially gameable.
 
 - **SQLite persistence** (spec §7): nothing is stored server-side at all.
 - **React Testing Library suite** (spec §7): not configured.
-- **Docker packaging** (spec §7, optional): not provided; setup is via `setup.ps1`/`setup.sh`.
+- **Docker packaging** (spec §7, optional): implemented (`docker compose up --build` serves
+  :5173 → :8000, verified from a fresh clone); native setup remains via `setup.ps1`/`setup.sh`.
 - **LIME fallback** (spec §5/§10 "SHAP (or LIME as fallback)"): only heuristic fallbacks exist.
 - **Precision/Recall/F1/FPR for the unified score, false-negative study on calm messages, Module D
   ablation** (spec §11): not yet measurable without labeled B/C data — the evaluation section of the
