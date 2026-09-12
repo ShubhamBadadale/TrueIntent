@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]
+xgboost
+scikit-learn
+shap
+pytesseract
+pillow
+pandas
+numpy
+pytest
+python-multipart
