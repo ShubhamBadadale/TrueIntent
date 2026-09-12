@@ -1,0 +1,18 @@
+# Keep the Docker build context small and reproducible.
+# (The backend image retrains Module A deterministically at build time,
+# so local data artifacts and models are intentionally excluded.)
+backend/venv/
+frontend/node_modules/
+frontend/dist/
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+.git/
+.gitignore
+.pytest_cache/
+.coverage
+htmlcov/
+data/raw/
+ml/models/*.pkl
+tests/__pycache__/
+ChromeSetup.exe
