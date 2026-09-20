@@ -1,0 +1,6 @@
+cloud app "StorageBacked" {
+  network "main" { cidr = "10.2.0.0/16" }
+  subnet "public" { cidr = "10.2.1.0/24" depends_on = ["main"] }
+  storage "data" { size = 20 }
+  compute "web" { image = "ubuntu-22.04" cpu = 2 memory = 4 depends_on = ["public", "data"] }
+}

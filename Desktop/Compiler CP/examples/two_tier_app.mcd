@@ -1,0 +1,10 @@
+cloud app "TwoTier" {
+  network "main" { cidr = "10.1.0.0/16" }
+  subnet "app" { cidr = "10.1.1.0/24" depends_on = ["main"] }
+  firewall "internal" {
+    depends_on = ["main"]
+    allow = [{ port = 8080, protocol = "tcp", source = "10.1.0.0/16" }]
+  }
+  compute "api" { image = "ubuntu-22.04" cpu = 2 memory = 4 depends_on = ["app", "internal"] }
+  compute "worker" { image = "ubuntu-22.04" cpu = 1 memory = 2 depends_on = ["api"] }
+}
