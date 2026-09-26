@@ -1,5 +1,13 @@
 # TrueIntent Test Coverage Report
 
+Current regression run (2026-09-26): **81 passed, 2 skipped**.
+Frontend production build passes. Android assembleDebug/lintDebug pass (zero lint errors).
+The Python run reports existing Starlette deprecations and a Module B artifact
+version warning (trained with sklearn 1.7.1, backend uses 1.7.2); B was not
+retrained in this phase. Physical-phone and real OCR testing remain unperformed. The percentages below are the historical
+2026-09-12 measurement and have not been remeasured after Phases 1-5.
+
+
 - **Date**: 2026-09-12
 - **Environment**: Windows (win32), Python 3.10.9, `backend/venv`
 - **Result**: **43 passed, 2 skipped** (skips: real-screenshot evidence tests awaiting

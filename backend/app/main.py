@@ -177,7 +177,7 @@ async def post_check_message(
 # -----------------------------------------------------------------------------
 @app.post("/check-transaction", response_model=TransactionCheckResponse)
 def post_check_transaction(body: TransactionCheckRequest):
-    payload = body.model_dump(exclude_none=True)
+    payload = body.to_module_a_payload()
     try:
         score = predict_module_a(payload)
     except FileNotFoundError:
@@ -202,7 +202,7 @@ def post_check_combined(body: CombinedRequest):
     modules: dict = {}
 
     if body.transaction is not None:
-        payload = body.transaction.model_dump(exclude_none=True)
+        payload = body.transaction.to_module_a_payload()
         try:
             score_a = float(predict_module_a(payload))
         except FileNotFoundError:

@@ -1,0 +1,29 @@
+{
+  "metrics": {
+    "precision": 0.9173333333333333,
+    "recall": 0.9028871391076115,
+    "f1": 0.91005291005291,
+    "fpr": 0.08136482939632546,
+    "confusion_matrix": [
+      [
+        1050,
+        93
+      ],
+      [
+        111,
+        1032
+      ]
+    ]
+  },
+  "evaluation": {
+    "split": "stratified random URL holdout",
+    "seed": 42,
+    "test_size": 0.2,
+    "train_rows": 9141,
+    "test_rows": 2286,
+    "shared_hostnames": 452,
+    "test_rows_with_train_hostname": 805,
+    "data_sha256": "588f85c75146706a255e8001738b75323443cd062a3c19896df24a999428374f",
+    "scope": "Classifier only; not the 50/50 rules blend or current real-world performance."
+  }
+}

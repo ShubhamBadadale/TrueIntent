@@ -8,14 +8,23 @@ This document defines the official data schemas for all datasets used across the
 
 **Purpose:** Evaluates financial transaction risk combined with concurrent device state (e.g., active call status).
 
-| Column Name | Data Type | Constraint / Format | Description | Example |
-| :--- | :--- | :--- | :--- | :--- |
-| `amount` | Float | Numeric (> 0.0) | Transaction value in currency units | `45000.00` |
-| `timestamp` | String | ISO 8601 (`YYYY-MM-DDTHH:MM:SSZ`) | Timestamp when the transaction was requested | `2026-09-12T20:54:00Z` |
-| `device_id` | String | Non-empty alphanumeric string | Unique hardware/installation identifier | `dev_982a4f` |
-| `is_active_call` | Boolean | `true` / `false` (or `1` / `0`) | Indicates if an active phone call was ongoing during transaction | `true` |
-| `transaction_velocity` | Integer | Non-negative integer (>= 0) | Number of transactions initiated from device in the last 1 hour | `4` |
-| `label` | String / Enum | `fraud` or `legitimate` | Target classification label | `fraud` |
+Phase 2 training CSV schema (runtime inference still accepts the existing six-feature
+contract and its timestamp/device_id convenience inputs):
+
+| Column | Type | Origin / meaning |
+| :--- | :--- | :--- |
+| `TransactionID` | Integer | Source row ID; audit only, not a feature |
+| `TransactionDT` | Numeric | Relative source seconds; chronological split/history only |
+| `amount` | Float | Real TransactionAmt in source units |
+| `hour_of_day` | Integer 0?23 | Relative time phase proxy |
+| `is_odd_hour` | Integer 0/1 | Existing hour rule on that proxy |
+| `is_new_device` | Integer 0/1 | Synthetic novelty scenario |
+| `is_active_call` | Integer 0/1 | Synthetic call scenario |
+| `transaction_velocity` | Nonnegative integer | Prior-hour count for anonymized card/address proxy |
+| `label` | Enum | Real source isFraud mapped to fraud/legitimate |
+
+No deployment timestamp or device ID is fabricated. Exact definitions and provenance
+are in [DATASHEET.md](DATASHEET.md). Only the six named features enter XGBoost.
 
 ---
 
@@ -32,18 +41,21 @@ This document defines the official data schemas for all datasets used across the
 
 ## 3. Module C: Message / Screenshot Scam Analyzer Dataset
 
-**Purpose:** Evaluates raw text (pasted chat text or extracted via OCR from screenshots) for scam behavioral signatures.
+The assembled training file is `data/raw/signature_examples.csv`:
 
-| Column Name | Data Type | Constraint / Format | Description | Example |
-| :--- | :--- | :--- | :--- | :--- |
-| `raw_text` | String | Non-empty text string | Full message body or OCR output from chat screenshots | `"Urgent: CBI investigation registered against your Aadhar. Stay on call or face arrest."` |
-| `label` | String / Enum | `scam` or `legitimate` | Binary scam classification label | `scam` |
-| `scam_type` | String / Enum | `fear_authority`, `greed_opportunity`, or `none` | Psychological manipulation taxonomy matched | `fear_authority` |
+| Column | Meaning |
+| :--- | :--- |
+| `text` | Real message body or cited report excerpt |
+| `signature` | `fear_authority`, `greed_opportunity`, or `none` |
+| `source_url` | Per-example source citation |
+| `source_id` | Source row number or incident identifier |
+| `source_kind` | SMS, email or reported-excerpt type |
+| `label_basis` | Original-label mapping, weak-label rule or manual annotation |
+| `group_id` | Normalized text hash for deduplication |
 
-> **Implementation note:** `ml/train_module_c.py` accepts common column-name variants for these
-> fields (e.g. the UCI SMS Spam Collection's `v1`/`v2` layout, or `message`/`label`), mapping them
-> onto this canonical schema. Curated signature rows live in `data/raw/signature_examples.csv`;
-> ham rows from `data/raw/sms_spam_collection.csv` supplement the `none` class.
+Only `text` enters TF-IDF. The trainer consumes the complete assembled CSV without
+supplementing a second ham file. The three signature names and inference contract
+are unchanged. See [Module C datasheet](MODULE_C_DATASHEET.md).
 
 ---
 
@@ -53,4 +65,20 @@ This document defines the official data schemas for all datasets used across the
 | :--- | :--- | :--- | :--- |
 | **Module A** | Transaction + Active Call correlation | Fraud probability | `data/raw/module_a_transactions.csv` |
 | **Module B** | URL structure & domain features | Phishing probability | `data/raw/module_b_urls.csv` |
-| **Module C** | Text content & psychological tactic | Scam probability + type | `data/raw/signature_examples.csv` (+ `data/raw/sms_spam_collection.csv` ham supplement) |
+| **Module C** | Text content & psychological tactic | Scam probability + type | `data/raw/signature_examples.csv` |
+
+## Optional Android call report (API only)
+
+Transaction requests accept optional `call_telemetry` containing `device_id` (matching
+transaction), `is_active_call` (boolean), and timezone-aware `timestamp` (fresh within
+120 seconds, maximum 30 seconds future). This overrides the manual call flag only
+for that request; it does not change the six-feature Module A training schema.
+See [Android companion](../docs/ANDROID_COMPANION.md).
+
+## Module D synthetic scenarios
+
+`data/raw/module_d_scenarios.csv`: `module_a_score,module_b_score,module_c_score`
+plus binary `combined_label`, `split`, `scenario_id`, `presence_mask`, `label_basis`
+and per-component source IDs/labels. Absent scores are zero and labels are -1.
+Combined labels are a synthetic OR policy, not real observed incident outcomes.
+See [datasheet](MODULE_D_DATASHEET.md).

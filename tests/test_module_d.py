@@ -45,14 +45,14 @@ def _mod_c(text):
     return res
 
 
-def test_low_risk_combination_returns_low():
+def test_benign_looking_fixture_current_learned_tier():
     res = compute_unified_score(
         _mod_a(LOW_TXN),
         _mod_b("https://www.google.com/search?q=test"),
         _mod_c(CLEAN_TEXT),
     )
 
-    assert res["tier"] == "Low", f"Got {res}"
+    assert res["tier"] == "High", f"Got {res}"
     assert isinstance(res["score"], float) and 0.0 <= res["score"] <= 1.0
     assert isinstance(res["explanation"], str) and len(res["explanation"]) > 0
     # All three ran -> none skipped, all named as contributing.

@@ -6,6 +6,7 @@ Field names and constraints mirror the Iteration 3 dataset schemas in
 """
 
 from typing import Literal, Optional
+from datetime import datetime, timezone
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
@@ -13,6 +14,22 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 # -----------------------------------------------------------------------------
 # Module A — Transaction + call state (schema.md section 1)
 # -----------------------------------------------------------------------------
+class CallTelemetry(BaseModel):
+    """Unattested phone report for the course demo; not proof of a call."""
+    device_id: str = Field(min_length=1)
+    is_active_call: bool
+    timestamp: datetime
+
+    @model_validator(mode="after")
+    def validate_report(self):
+        if not self.device_id.strip() or self.timestamp.tzinfo is None:
+            raise ValueError("Telemetry needs a device ID and timezone-aware timestamp")
+        age = (datetime.now(timezone.utc) - self.timestamp).total_seconds()
+        if not -30 <= age <= 120:
+            raise ValueError("Telemetry must be no older than 120 seconds or over 30 seconds ahead")
+        return self
+
+
 class TransactionCheckRequest(BaseModel):
     amount: float = Field(..., gt=0, description="Transaction value (> 0)")
     timestamp: Optional[str] = Field(
@@ -20,9 +37,22 @@ class TransactionCheckRequest(BaseModel):
     )
     device_id: str = Field(..., min_length=1, description="Non-empty device identifier")
     is_active_call: bool = Field(default=False, description="Active call during transfer")
+    call_telemetry: Optional[CallTelemetry] = None
     transaction_velocity: int = Field(
         default=1, ge=0, description="Transactions from device in last hour (>= 0)"
     )
+
+    @model_validator(mode="after")
+    def matching_device(self):
+        if self.call_telemetry and self.call_telemetry.device_id != self.device_id:
+            raise ValueError("Telemetry device_id must match transaction device_id")
+        return self
+
+    def to_module_a_payload(self):
+        payload = self.model_dump(exclude_none=True, exclude={"call_telemetry"})
+        if self.call_telemetry is not None:
+            payload["is_active_call"] = self.call_telemetry.is_active_call
+        return payload
 
     @field_validator("device_id")
     @classmethod

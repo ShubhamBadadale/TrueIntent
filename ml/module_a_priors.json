@@ -1,0 +1,7 @@
+{
+ "seed": 42,
+ "telemetry_flip_probability": 0.125,
+ "is_active_call": {"fraud": 0.60, "legitimate": 0.10},
+ "is_new_device": {"fraud": 0.45, "legitimate": 0.15},
+ "rationale": "Hypothetical sensitivity scenario, not measured prevalence: moderate call enrichment and weaker device novelty with overlap. IEEE-CIS card fraud is not APP coercion. Independent bit flips weaken both associations; real labels stay unchanged."
+}

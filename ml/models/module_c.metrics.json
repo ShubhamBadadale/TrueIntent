@@ -1,0 +1,233 @@
+{
+  "sklearn_version": "1.7.2",
+  "per_class": {
+    "fear_authority": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1-score": 0.0,
+      "support": 5.0
+    },
+    "greed_opportunity": {
+      "precision": 0.9984116899618806,
+      "recall": 0.9852664576802508,
+      "f1-score": 0.991795519091196,
+      "support": 3190.0
+    },
+    "none": {
+      "precision": 0.9885664028144239,
+      "recall": 0.9988891357476116,
+      "f1-score": 0.9937009614322024,
+      "support": 4501.0
+    },
+    "accuracy": 0.9925935550935551,
+    "macro avg": {
+      "precision": 0.6623260309254348,
+      "recall": 0.6613851978092874,
+      "f1-score": 0.6618321601744661,
+      "support": 7696.0
+    },
+    "weighted avg": {
+      "precision": 0.9920050246941425,
+      "recall": 0.9925935550935551,
+      "f1-score": 0.9922655578621697,
+      "support": 7696.0
+    }
+  },
+  "folds": [
+    {
+      "fear_authority": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1-score": 0.0,
+        "support": 1.0
+      },
+      "greed_opportunity": {
+        "precision": 1.0,
+        "recall": 0.9905956112852664,
+        "f1-score": 0.9952755905511811,
+        "support": 638.0
+      },
+      "none": {
+        "precision": 0.9922907488986784,
+        "recall": 1.0,
+        "f1-score": 0.996130458817026,
+        "support": 901.0
+      },
+      "accuracy": 0.9954545454545455,
+      "macro avg": {
+        "precision": 0.6640969162995595,
+        "recall": 0.6635318704284221,
+        "f1-score": 0.6638020164560691,
+        "support": 1540.0
+      },
+      "weighted avg": {
+        "precision": 0.9948402368556554,
+        "recall": 0.9954545454545455,
+        "f1-score": 0.9951294611466195,
+        "support": 1540.0
+      }
+    },
+    {
+      "fear_authority": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1-score": 0.0,
+        "support": 1.0
+      },
+      "greed_opportunity": {
+        "precision": 1.0,
+        "recall": 0.9827586206896551,
+        "f1-score": 0.991304347826087,
+        "support": 638.0
+      },
+      "none": {
+        "precision": 0.9868421052631579,
+        "recall": 1.0,
+        "f1-score": 0.9933774834437086,
+        "support": 900.0
+      },
+      "accuracy": 0.9922027290448343,
+      "macro avg": {
+        "precision": 0.662280701754386,
+        "recall": 0.6609195402298851,
+        "f1-score": 0.6615606104232652,
+        "support": 1539.0
+      },
+      "weighted avg": {
+        "precision": 0.9916555521356999,
+        "recall": 0.9922027290448343,
+        "f1-score": 0.9918725854531392,
+        "support": 1539.0
+      }
+    },
+    {
+      "fear_authority": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1-score": 0.0,
+        "support": 1.0
+      },
+      "greed_opportunity": {
+        "precision": 0.995260663507109,
+        "recall": 0.987460815047022,
+        "f1-score": 0.991345397324941,
+        "support": 638.0
+      },
+      "none": {
+        "precision": 0.9900662251655629,
+        "recall": 0.9966666666666667,
+        "f1-score": 0.9933554817275747,
+        "support": 900.0
+      },
+      "accuracy": 0.9922027290448343,
+      "macro avg": {
+        "precision": 0.6617756295575573,
+        "recall": 0.6613758272378962,
+        "f1-score": 0.6615669596841719,
+        "support": 1539.0
+      },
+      "weighted avg": {
+        "precision": 0.9915762871777402,
+        "recall": 0.9922027290448343,
+        "f1-score": 0.9918767362236061,
+        "support": 1539.0
+      }
+    },
+    {
+      "fear_authority": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1-score": 0.0,
+        "support": 1.0
+      },
+      "greed_opportunity": {
+        "precision": 1.0,
+        "recall": 0.9780564263322884,
+        "f1-score": 0.9889064976228209,
+        "support": 638.0
+      },
+      "none": {
+        "precision": 0.9836065573770492,
+        "recall": 1.0,
+        "f1-score": 0.9917355371900827,
+        "support": 900.0
+      },
+      "accuracy": 0.9902534113060428,
+      "macro avg": {
+        "precision": 0.6612021857923497,
+        "recall": 0.6593521421107628,
+        "f1-score": 0.6602140116043013,
+        "support": 1539.0
+      },
+      "weighted avg": {
+        "precision": 0.9897634188689696,
+        "recall": 0.9902534113060428,
+        "f1-score": 0.989918342400542,
+        "support": 1539.0
+      }
+    },
+    {
+      "fear_authority": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1-score": 0.0,
+        "support": 1.0
+      },
+      "greed_opportunity": {
+        "precision": 0.9968354430379747,
+        "recall": 0.987460815047022,
+        "f1-score": 0.9921259842519685,
+        "support": 638.0
+      },
+      "none": {
+        "precision": 0.9900771775082691,
+        "recall": 0.9977777777777778,
+        "f1-score": 0.993912562257886,
+        "support": 900.0
+      },
+      "accuracy": 0.9928525016244314,
+      "macro avg": {
+        "precision": 0.6623042068487479,
+        "recall": 0.6617461976082666,
+        "f1-score": 0.6620128488366182,
+        "support": 1539.0
+      },
+      "weighted avg": {
+        "precision": 0.9922355246365626,
+        "recall": 0.9928525016244314,
+        "f1-score": 0.9925261104514965,
+        "support": 1539.0
+      }
+    }
+  ],
+  "confusion_matrix": [
+    [
+      0,
+      0,
+      5
+    ],
+    [
+      0,
+      3143,
+      47
+    ],
+    [
+      0,
+      5,
+      4496
+    ]
+  ],
+  "label_order": [
+    "fear_authority",
+    "greed_opportunity",
+    "none"
+  ],
+  "counts": {
+    "none": 4501,
+    "greed_opportunity": 3190,
+    "fear_authority": 5
+  },
+  "evaluation": "Five-fold stratified out-of-fold predictions after normalized-text deduplication; final artifact refit on all rows",
+  "data_sha256": "fed1b84e47261773213bcca6d7fc214adc27393293abe1499170d103b1cf6cbf",
+  "limitation": "Fear support only five reported excerpts; greed labels weak. Cross-source style shortcuts and remaining near-duplicates possible. Not deployment accuracy."
+}

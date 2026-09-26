@@ -48,10 +48,10 @@ Known limitations (read before evaluation): [`docs/LIMITATIONS.md`](docs/LIMITAT
 
 | Module | What it does | Implementation status |
 |---|---|---|
-| **A — Transaction–Call Correlation** | XGBoost risk probability from amount, time, device, `is_active_call`, velocity | Trained on synthetic data (documented assumptions in `data/README.md`) |
-| **B — URL Safety Checker** | Rule checks (IP host, typosquatting, TLD, obfuscation, length, + optional live page fetch) blended 50/50 with TF-IDF char n-gram + Logistic Regression when a dataset exists | **Rules-only** — `data/raw/module_b_urls.csv` pending |
-| **C — Message/Screenshot Analyzer** | `fear_authority` vs `greed_opportunity` signatures; embedded URLs auto-checked by Module B; screenshot OCR via Tesseract | **Keyword baseline** — `sms_spam_collection.csv` + `signature_examples.csv` pending |
-| **D — Unified Scorer + SHAP** | Renormalized weighted sum (A 0.45 / C 0.30 / B 0.25) → tier; SHAP-grounded plain-language explanation | Implemented; SHAP active for A, keyword-evidence fallback for C |
+| **A — Transaction–Call Correlation** | XGBoost risk probability from amount, time, device, `is_active_call`, velocity | Hybrid IEEE-CIS + synthetic call/device flags; chronological F1 0.1562, recall delta +11.39 pp. Not real-world performance; see `data/DATASHEET.md` |
+| **B — URL Safety Checker** | Rule checks (IP host, typosquatting, TLD, obfuscation, length, + optional live page fetch) blended 50/50 with TF-IDF char n-gram + Logistic Regression | **Active** — trained on 11,427 real historical URL rows; classifier holdout F1 0.9101 (not current real-world performance). See `data/README.md`. |
+| **C - Message/Screenshot Analyzer** | Trained TF-IDF + Logistic Regression with existing keyword safeguards and URL/OCR paths | **Active, fear unvalidated**: 5 cited fear excerpts, OOF recall 0/5. See `data/MODULE_C_DATASHEET.md`. |
+| **D - Unified Scorer + SHAP** | Learned three-score logistic policy; log-odds contributions and module explanations | Active on synthetic joint labels, not real incidents. [Evaluation](data/MODULE_D_DATASHEET.md) |
 | **E — Web Portal** | Three calm, senior-friendly input views + shared results card | React + Tailwind, wired to the API |
 
 ---
@@ -76,13 +76,13 @@ Known limitations (read before evaluation): [`docs/LIMITATIONS.md`](docs/LIMITAT
 │   ├── ocr_module_c.py     # extract_text_from_image() + analyze_image() (never false low-risk)
 │   ├── predict_module_d.py # compute_unified_score(a, b, c) -> {tier, score, explanation, details}
 │   ├── train_module_*.py   # Training entry points (A trains; B/C print DATASET PENDING without CSVs)
-│   ├── generate_module_a_data.py  # Synthetic Module A data generator (seed 42, deterministic)
+│   ├── generate_module_a_data.py  # IEEE-CIS ingestion + simulated telemetry (seed 42)
 │   └── models/             # Trained artifacts (gitignored; only module_a.pkl exists locally)
 ├── data/
-│   ├── raw/                # Datasets (gitignored) — only synthetic module_a_transactions.csv present
+│   ├── raw/                # Datasets (gitignored); Module B now includes real historical URLs
 │   ├── README.md           # Per-module dataset status (present vs pending)
 │   └── schema.md           # Canonical dataset schemas
-├── tests/              # Pytest suite (43 passed, 2 skipped) + clearly-labeled synthetic OCR fixture
+├── tests/              # Pytest suite (81 passed, 2 skipped) + clearly-labeled synthetic OCR fixture
 ├── docs/               # decision_log.md (ADRs), DECISIONS.md, LIMITATIONS.md, coverage.md, architecture.md
 ├── setup.sh / setup.ps1
 ├── run-backend.sh / run-backend.ps1      # Backend on http://localhost:8000
@@ -133,13 +133,15 @@ These steps were exercised against this checkout (venv install + `npm install` +
 Run from the **repo root** (scripts use relative `data/` / `ml/` paths):
 
 ```bash
-# Module A: generates the synthetic dataset if missing, trains XGBoost, saves ml/models/module_a.pkl
+# Module A: requires local IEEE-CIS data; generates hybrid features then trains
+.\backend\venv\Scripts\python.exe ml/generate_module_a_data.py
 .\backend\venv\Scripts\python.exe ml/train_module_a.py
 ```
 
-Verified output on the committed seed: Precision **1.0000**, Recall **1.0000**, F1 **1.0000**, FPR **0.0000**
-(60-sample holdout). These perfect scores are an artifact of the synthetic data's non-overlapping amount
-ranges — see [`docs/LIMITATIONS.md`](docs/LIMITATIONS.md); do not present them as real-world performance.
+Phase 2 chronological holdout: precision **0.0881**, recall **0.6863**, F1 **0.1562**,
+FPR **0.2531**. Removing synthetic telemetry yields recall **0.5723** (delta **+11.39 pp**).
+These are assumption-dependent hybrid-data results, not real-world performance.
+See [`data/DATASHEET.md`](data/DATASHEET.md) for the full comparison and known limitations.
 
 ```bash
 # Modules B/C: without their CSVs these print DATASET PENDING and exit (rules-only mode stays active)
@@ -148,9 +150,13 @@ ranges — see [`docs/LIMITATIONS.md`](docs/LIMITATIONS.md); do not present them
 ```
 
 To activate the ML classifiers, place CSVs in `data/raw/` per [`data/README.md`](data/README.md) and re-run:
-- `module_b_urls.csv` with `url,label` columns (`label`: `phishing`/`legitimate`)
-- `signature_examples.csv` with text + `signature` (`fear_authority`/`greed_opportunity`/`none`) columns,
-  optionally plus `sms_spam_collection.csv` (ham rows supplement the `none` class)
+- Module B: run `python ml/generate_module_b_data.py`, then `python ml/train_module_b.py`.
+  This downloads the public Kaggle v2 dataset and writes `module_b_urls.csv` with `url,label`
+  (`phishing`/`legitimate`). See [`data/README.md`](data/README.md) for offline ingestion,
+  attribution, metrics and limitations. Restart the backend after retraining.
+- Module C: run `.\backend\venv\Scripts\python.exe ml/generate_module_c_data.py`, then
+  `.\backend\venv\Scripts\python.exe ml/train_module_c.py`. The assembled CSV includes
+  source metadata; see [Module C datasheet](data/MODULE_C_DATASHEET.md).
 
 ---
 
@@ -177,24 +183,27 @@ To point the frontend at a non-default backend: `VITE_API_URL=http://localhost:8
 |---|---|---|
 | `POST /check-url` | `{"url": "..."}` | `{score, reasons, ml_status}` (Module B) |
 | `POST /check-message` | form `text` **xor** file `image` | `{score, signature, reasons, ml_status, ocr_text?, ocr_status?}` (Module C) |
-| `POST /check-transaction` | `{amount, timestamp?, device_id, is_active_call?, transaction_velocity?}` | `{score}` (Module A) |
+| `POST /check-transaction` | `{amount, timestamp?, device_id, is_active_call?, transaction_velocity?, call_telemetry?}` | `{score}` (Module A) |
 | `POST /check-combined` | any subset of `{transaction, url, text}` | `{tier, score, explanation, details, modules}` (Module D) |
 
 Errors are clear 4xx with human-readable messages (malformed URL → 422, missing input → 400/422,
 unreadable image → 400, OCR engine missing → 503) — never raw stack traces. The API skips live page
 fetching (`fetch_live_page=False`) for deterministic, offline-safe responses.
 
-### Run with Docker (no local setup needed)
+### Docker packaging (legacy, not revalidated)
 
-Requires only Docker with Compose v2. Verified from a fresh clone with no cached dependencies:
+The old Dockerfile assumes build-time synthetic training and excludes local artifacts.
+It requires updating before use with the current datasets; use native setup for these phases.
+The historical command is:
 
 ```bash
 docker compose up --build
 ```
 
 - Frontend demo: `http://localhost:5173` · Backend API/docs: `http://localhost:8000` (`/docs`)
-- The backend image installs the Tesseract binary and retrains Module A deterministically at build
-  time, so the demo works with zero local data or models.
+- Module A build-time training now requires authorized IEEE-CIS data (or generated data plus metadata).
+  The backend image installs the Tesseract binary and retrains Module A at build
+  time; a fresh clone without the authorized data can no longer train Module A.
 - Stop with `docker compose down -v`. To target a remote backend, rebuild the frontend with
   `docker compose build --build-arg VITE_API_URL=http://<host>:8000`.
 
@@ -209,8 +218,8 @@ cd backend
 .\venv\Scripts\pytest ..\tests\
 ```
 
-Verified: **43 passed, 2 skipped** (skips are the real-screenshot evidence tests awaiting user-provided
-screenshots / a Tesseract binary). Full coverage report: [`docs/coverage.md`](docs/coverage.md) —
+Verified: **81 passed, 2 skipped** (skips are the real-screenshot evidence tests awaiting user-provided
+screenshots / a Tesseract binary). Historical coverage report (not remeasured for these upgrades): [`docs/coverage.md`](docs/coverage.md) —
 53% overall, ~70% on serving+inference code (one-shot training scripts excluded).
 
 ---
@@ -219,24 +228,23 @@ screenshots / a Tesseract binary). Full coverage report: [`docs/coverage.md`](do
 
 Backend running on `:8000`, frontend on `:5173`.
 
-**1. Check a link** — paste `http://192.168.1.1/verify-account` → score **0.6** with reasons
-"Insecure protocol…" and "Host is a raw IP address (192.168.1.1)…".
+**1. Check a link** - paste `http://192.168.1.1/verify-account` and inspect the
+blended classifier/rule score and reasons.
 
-**2. Check a message** — paste `You are under investigation. Stay on the line and do not disconnect.`
-→ signature `fear_authority`, combined tier **Critical (0.9)**. Try appending
-`http://192.168.1.1/verify-account` to see Module B evidence folded into the message result.
+**2. Check a message** - paste `You are under investigation. Stay on the line and do not disconnect.`
+Keyword safeguards can flag fear language; the trained fear class remains unvalidated.
 
-**3. Simulate a transaction** — amount `45000`, active call **on** → score **0.9889**; the same form with
-`500`, call **off** → **0.0066**. Then submit all three together via `/check-combined` to see Module D
-escalate a legitimate-looking transfer once coercion evidence is correlated
-(covered by `tests/test_integration.py`).
+**3. Check a transaction** - use the manual web form or the
+[Android companion](docs/ANDROID_COMPANION.md). Scores depend on the current artifact;
+old synthetic amount-based demo scores are obsolete. Combined tiers follow the
+learned synthetic policy described in the [D datasheet](data/MODULE_D_DATASHEET.md).
 
 ---
 
 ## Data & privacy
 
-- Only **synthetic** transaction data exists in-repo; `data/raw/*` and `*.pkl` artifacts are gitignored,
-  so no real PII or raw evidence can leak into version control.
+- Module B uses real, historical public URL data; Module A uses **real IEEE-CIS amounts/labels with synthetic call/device flags**.
+  `data/raw/*` and `*.pkl` artifacts are gitignored and must be regenerated on a fresh checkout.
 - The OCR failure contract guarantees blurry/unreadable screenshots return
   `ocr_status: insufficient_text` with a "try a clearer screenshot" message — never a false low-risk score.
 - Test images: only a clearly-labeled **synthetic** fixture (`tests/data/synthetic_chat_fear_authority.png`);
@@ -258,3 +266,19 @@ escalate a legitimate-looking transfer once coercion evidence is correlated
 > The prose final report (related work, full results narrative) is a separate written submission —
 > its technical chapters already exist as `docs/DECISIONS.md`, `docs/LIMITATIONS.md`,
 > `docs/coverage.md`, and `docs/architecture.md`.
+
+### Module C Phase 4 reproduction and limits
+
+Run `.\backend\venv\Scripts\python.exe ml/generate_module_c_data.py`, then
+`.\backend\venv\Scripts\python.exe ml/train_module_c.py`. Restart the backend.
+This uses source ZIPs and writes the assembled `text,signature` CSV; the trainer
+no longer adds an extra ham sample from a separate CSV. Keyword safeguards remain.
+Fear/authority recall is **0/5** out of fold. Greed and ham F1 are **0.9918/0.9937**,
+with weak labels and severe source/style confounding; these are not real-world
+performance estimates. [Data and per-class evaluation](data/MODULE_C_DATASHEET.md).
+
+### Completed fusion and phone-signal implementation
+
+Module D reproduction and coefficients: [datasheet](data/MODULE_D_DATASHEET.md).
+Android setup, payload, scope and verification: [companion guide](docs/ANDROID_COMPANION.md).
+Restart the backend to load the new code. Manual transaction input still works.

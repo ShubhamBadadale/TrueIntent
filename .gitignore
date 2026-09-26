@@ -78,3 +78,9 @@ data/raw/*
 
 # Local installer binaries (not part of the project)
 *.exe
+
+# Android local tooling
+.tools/
+.gradle/
+local.properties
+*.apk

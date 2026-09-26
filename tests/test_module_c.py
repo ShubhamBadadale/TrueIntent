@@ -3,6 +3,14 @@ import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from ml.predict_module_c import analyze_message
+import pytest
+from ml import predict_module_c
+
+@pytest.fixture(autouse=True)
+def keyword_fallback(monkeypatch):
+    # Preserve deterministic fallback regression coverage with a real model installed.
+    monkeypatch.setattr(predict_module_c, "_load_ml_model", lambda: None)
+
 
 
 def _result(text: str) -> dict:
@@ -76,12 +84,6 @@ def test_empty_message_edge_case():
 
 def test_ml_status_reports_placeholder_when_dataset_pending():
     """Without Module C datasets/model, ML component must report rules-only/pending."""
-    sms_path = os.path.join("data", "raw", "sms_spam_collection.csv")
-    sig_path = os.path.join("data", "raw", "signature_examples.csv")
-    model_path = os.path.join("ml", "models", "module_c.pkl")
-    if os.path.exists(sms_path) or os.path.exists(sig_path) or os.path.exists(model_path):
-        import pytest
-        pytest.skip("Module C dataset/model present — ML mode expected, skipping pending check.")
     res = _result("Hello, just checking in.")
     assert "ml_status" in res
     assert "rules_only" in res["ml_status"]

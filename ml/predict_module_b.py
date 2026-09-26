@@ -223,15 +223,16 @@ def check_url(url: str, fetch_live_page: bool = True) -> dict:
     if artifact is not None:
         try:
             pipeline = artifact["pipeline"]
-            ml_proba = float(pipeline.predict_proba([url])[0, 1])
+            phishing_index = list(pipeline.classes_).index(1)
+            ml_proba = float(pipeline.predict_proba([url])[0, phishing_index])
             final_score = round(min(1.0, 0.50 * rule_score + 0.50 * ml_proba), 4)
-            ml_status = "combined (rules + ML classifier)"
+            ml_status = "active"
         except Exception:
             final_score = round(rule_score, 4)
             ml_status = "rules_only (ML inference failed)"
     else:
         final_score = round(rule_score, 4)
-        ml_status = "rules_only (dataset pending)"
+        ml_status = "rules_only (model unavailable)"
 
     return {
         "score": final_score,

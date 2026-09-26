@@ -9,12 +9,10 @@ Combines Module A (transaction+call), Module B (URL safety) and Module C
 
 Design notes
 ------------
-* Weighted sum with named constants below (renormalized over the modules
-  that actually ran, so a single-module check still spans the full 0-1 range).
-  Rationale: Module A carries the highest weight because transaction+call
-  correlation is the project's core thesis signal; Module C next (psychological
-  manipulation language); Module B lowest (narrowest signal, and often already
-  folded into Module C via URL folding).
+* Learned logistic scorer over the three scores; zero-imputation for missing
+  modules, trained on explicitly synthetic policy labels. Fixed weighted sum
+  ONLY when the artifact is missing (warning logged), renormalized over modules
+  that actually ran. Original fallback weights are A=.45, B=.25, C=.30.
 * SHAP: Module A uses shap.TreeExplainer on the XGBoost model; Module C (only
   when an ML artifact exists AND the caller passes the analyzed `text`) uses
   exact linear-SHAP token attribution (coef x TF-IDF vs. a zero baseline —
@@ -26,6 +24,36 @@ Design notes
 
 import os
 import re
+import logging
+import math
+import joblib
+import numpy as np
+import pandas as pd
+
+_LOGGER = logging.getLogger(__name__)
+_D_CACHE = None
+
+def _get_model_path():
+    return os.path.join(os.path.dirname(__file__), "models", "module_d.pkl")
+
+def _load_learned_model():
+    global _D_CACHE
+    path = _get_model_path()
+    if not os.path.exists(path):
+        _LOGGER.warning("Module D learned model missing; using fixed-weight fallback: %s", path)
+        return None
+    stamp = (path, os.stat(path).st_mtime_ns, os.stat(path).st_size)
+    if _D_CACHE is None or _D_CACHE[0] != stamp:
+        artifact = joblib.load(path)  # Corruption/incompatibility must NOT silently fall back.
+        expected = ["module_a_score", "module_b_score", "module_c_score"]
+        if artifact.get("feature_cols") != expected or list(artifact["model"].classes_) != [0, 1]:
+            raise ValueError("Incompatible Module D model artifact")
+        if (not np.isfinite(artifact["model"].coef_).all()
+                or not np.isfinite(artifact["model"].intercept_).all()
+                or artifact["model"].coef_.shape != (1, 3)):
+            raise ValueError("Non-finite Module D coefficients")
+        _D_CACHE = (stamp, artifact)
+    return _D_CACHE[1]
 
 # -----------------------------------------------------------------------------
 # NAMED WEIGHT CONSTANTS (documented, tunable — not a black box)
@@ -62,11 +90,14 @@ def _extract_score(result) -> float | None:
     if isinstance(result, bool):
         raise TypeError("Module result must be a score float or dict, not bool.")
     if isinstance(result, (int, float)):
-        return max(0.0, min(1.0, float(result)))
+        value = float(result)
+        if not math.isfinite(value):
+            raise ValueError("Module score must be finite")
+        return max(0.0, min(1.0, value))
     if isinstance(result, dict):
         if "score" not in result:
             raise ValueError(f"Module result dict must contain a 'score' key: {result}")
-        return max(0.0, min(1.0, float(result["score"])))
+        return _extract_score(result["score"])
     raise TypeError(
         "Module result must be None, a score float, or a dict with a "
         f"'score' key — got {type(result).__name__}."
@@ -139,14 +170,14 @@ def _build_module_a_features(transaction: dict, artifact: dict):
 def _describe_module_a_feature(name: str, value) -> str | None:
     """Value-aware plain-language template per feature. None if not statable."""
     if name == "is_active_call":
-        return "active call detected during transfer" if int(value) == 1 else None
+        return "active call reported during transfer" if int(value) == 1 else None
     if name == "amount":
         try:
-            return f"unusually large transfer amount (\u20b9{float(value):,.0f})"
+            return f"transfer amount (\u20b9{float(value):,.0f})"
         except (TypeError, ValueError):
-            return "unusually large transfer amount"
+            return "transfer amount"
     if name == "transaction_velocity":
-        return f"rapid burst of {int(value)} transfers in the last hour"
+        return f"{int(value)} transfers reported in the last hour"
     if name == "is_new_device":
         return "transfer from a new or unrecognised device" if int(value) == 1 else None
     if name == "is_odd_hour":
@@ -334,7 +365,7 @@ def _factors_module_c(module_c_result) -> tuple[list, str]:
                     break
             if quoted:
                 factors.append("matched phrases: " + ", ".join(f"'{q}'" for q in quoted))
-    elif float(module_c_result.get("score", 0.0)) >= RISKY_MODULE_SCORE:
+    elif any("flagged by Module B" in str(reason) for reason in reasons):
         # Risky without a behavioral signature (e.g. via embedded-URL folding).
         factors.append("suspicious link embedded in the message")
     return factors, method
@@ -379,15 +410,38 @@ def compute_unified_score(module_a_result=None, module_b_result=None,
             "return a verdict with no evidence."
         )
 
-    total_w = sum(w for _, _, w in contribs)
-    unified = round(min(1.0, sum(s * w for _, s, w in contribs) / total_w), 4)
+    artifact = _load_learned_model()
+    names = ["module_a", "module_b", "module_c"]
+    supplied = [score_a, score_b, score_c]
+    contributions = {}
+    if artifact is None:
+        total_w = sum(w for _, _, w in contribs)
+        unified = round(min(1.0, sum(s * w for _, s, w in contribs) / total_w), 4)
+        weights = dict(module_a=WEIGHT_MODULE_A, module_b=WEIGHT_MODULE_B, module_c=WEIGHT_MODULE_C)
+        fusion_method = "fixed_weights_missing_model"
+        intercept = None
+        ranked_contribs = contribs
+    else:
+        model = artifact["model"]
+        values = [0.0 if v is None else v for v in supplied]
+        frame = pd.DataFrame([values], columns=artifact["feature_cols"])
+        unified = round(float(model.predict_proba(frame)[0, 1]), 4)
+        weights = dict(zip(names, map(float, model.coef_[0])))
+        intercept = float(model.intercept_[0])
+        # Exact linear SHAP for a point background of all-zero scores, in log-odds.
+        # Missing modules equal that reference and receive zero contribution.
+        contributions = {name: weights[name] * value for name, value in zip(names, values)}
+        fusion_method = "logistic_synthetic_policy"
+        present_names = [name for name, value in zip(names, supplied) if value is not None]
+        ranked_contribs = [(label, score, contributions[name])
+                          for (label, score, _), name in zip(contribs, present_names)]
     tier = _tier_for(unified)
 
     # --- headline factors: one per risky contributing module, max 3 ---
     shap_methods: dict = {}
     factor_groups: list = []  # (module_weight, [factors])
-    for label, s, w in contribs:
-        if s < RISKY_MODULE_SCORE:
+    for label, s, w in ranked_contribs:
+        if (artifact is None and s < RISKY_MODULE_SCORE) or (artifact is not None and w <= 0):
             continue
         if label.startswith("Module A"):
             f, m = _shap_factors_module_a(module_a_result)
@@ -464,9 +518,14 @@ def compute_unified_score(module_a_result=None, module_b_result=None,
         "score": unified,
         "explanation": explanation,
         "details": {
-            "weights": {"module_a": WEIGHT_MODULE_A, "module_b": WEIGHT_MODULE_B,
-                        "module_c": WEIGHT_MODULE_C},
-            "renormalized_over": ran,
+            "weights": weights,
+            "weight_semantics": "logistic coefficients (not normalized shares)" if artifact is not None else "fixed weights",
+            "scoring_method": fusion_method,
+            "intercept": intercept,
+            "module_contributions_log_odds": contributions,
+            "fusion_shap_method": "linear_zero_reference_log_odds" if artifact is not None else "not_applicable",
+            "model_caveat": "Synthetic joint labels; not calibrated real-world fraud probability" if artifact is not None else "Learned model file missing",
+            "renormalized_over": ran if artifact is None else [],
             "module_scores": {
                 "module_a": score_a, "module_b": score_b, "module_c": score_c,
             },

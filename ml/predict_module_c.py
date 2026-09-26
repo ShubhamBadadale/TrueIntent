@@ -1,11 +1,10 @@
 """
 Module C — Message/Scam Analyzer (text-analysis half).
 
-MVP: rule/keyword-pattern baseline covering both behavioral signatures.
-PLACEHOLDER — to be replaced/augmented by a TF-IDF + Logistic Regression
-classifier once the real Module C dataset is available
-(see `ml/train_module_c.py`, `data/raw/sms_spam_collection.csv`,
-`data/raw/signature_examples.csv`).
+TF-IDF + Logistic Regression over real text with weak behavioral labels.
+Fear/authority coverage is only five cited reported excerpts, not a representative
+transcript corpus. See data/README.md. Keywords remain safeguards in the existing
+blend and the missing/failed-model fallback; URL folding remains active in both paths.
 
 Any URLs found in the message are extracted and passed to Module B's
 `check_url()` and folded into the final score/reasons.
@@ -138,7 +137,7 @@ def analyze_message(text: str, fetch_live_page: bool = False) -> dict:
             "score": 0.0,
             "signature": "none",
             "reasons": ["Empty message text provided"],
-            "ml_status": "rules_only (placeholder baseline; Module C dataset pending)",
+            "ml_status": "not_run (empty text)",
         }
 
     text_lower = text_stripped.lower()
@@ -186,12 +185,15 @@ def analyze_message(text: str, fetch_live_page: bool = False) -> dict:
                 ml_signature = "none"
 
             if rule_signature != "none":
-                signature = rule_signature  # keep explainable rule vote
+                # Preserve the existing safeguard: fear has zero held-out recall.
+                signature = rule_signature
                 text_score = round(min(1.0, 0.50 * rule_score + 0.50 * ml_score), 4)
             else:
                 signature = ml_signature
                 text_score = round(ml_score, 4)
-            ml_status = "combined (rules + ML classifier)"
+            ml_status = "active (rules + ML; fear_authority unvalidated)"
+            if ml_signature != "none":
+                reasons.append(f"Text classifier suggests '{ml_signature}' (limited training coverage)")
         except Exception:
             signature = rule_signature
             text_score = round(rule_score, 4)
@@ -199,7 +201,7 @@ def analyze_message(text: str, fetch_live_page: bool = False) -> dict:
     else:
         signature = rule_signature
         text_score = round(rule_score, 4)
-        ml_status = "rules_only (placeholder baseline; Module C dataset pending)"
+        ml_status = "rules_only (model unavailable; keyword baseline)"
 
     # --- URL folding via Module B ---
     urls = extract_urls(text_stripped)

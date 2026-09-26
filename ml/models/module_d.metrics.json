@@ -1,0 +1,125 @@
+{
+  "sklearn_version": "1.7.2",
+  "policy": "combined_label=1 iff at least one PRESENT component has a positive source label; independently paired components are synthetic scenarios, not linked incidents.",
+  "coefficient_names": [
+    "module_a_score",
+    "module_b_score",
+    "module_c_score",
+    "intercept"
+  ],
+  "coefficients": [
+    4.879947846936586,
+    7.178934332099563,
+    5.8927692930125914,
+    -2.643978159822093
+  ],
+  "cv_coefficients": [
+    [
+      4.56166537007067,
+      6.8771195099489955,
+      5.601574142555507,
+      -2.486043305788739
+    ],
+    [
+      4.77797758025206,
+      6.743566287895024,
+      5.594416599051849,
+      -2.5406591677471377
+    ],
+    [
+      4.753413607447038,
+      6.687739690599177,
+      5.556331332640394,
+      -2.5010943347328776
+    ],
+    [
+      4.571690509241829,
+      6.8829606757110495,
+      5.591002890021087,
+      -2.4959893148559127
+    ],
+    [
+      4.5974928119756875,
+      6.813214358059109,
+      5.625614924431715,
+      -2.5080876685891953
+    ]
+  ],
+  "cv_min": [
+    4.56166537007067,
+    6.687739690599177,
+    5.556331332640394,
+    -2.5406591677471377
+  ],
+  "cv_max": [
+    4.77797758025206,
+    6.8829606757110495,
+    5.625614924431715,
+    -2.486043305788739
+  ],
+  "spread_note": "Five training-row folds; descriptive coefficient spread, not a confidence interval. Component reuse within training makes folds dependent.",
+  "heldout": {
+    "0": {
+      "precision": 0.782608695652174,
+      "recall": 0.782608695652174,
+      "f1-score": 0.782608695652174,
+      "support": 138.0
+    },
+    "1": {
+      "precision": 0.8854961832061069,
+      "recall": 0.8854961832061069,
+      "f1-score": 0.8854961832061069,
+      "support": 262.0
+    },
+    "accuracy": 0.85,
+    "macro avg": {
+      "precision": 0.8340524394291404,
+      "recall": 0.8340524394291404,
+      "f1-score": 0.8340524394291404,
+      "support": 400.0
+    },
+    "weighted avg": {
+      "precision": 0.85,
+      "recall": 0.85,
+      "f1-score": 0.85,
+      "support": 400.0
+    }
+  },
+  "confusion_matrix": [
+    [
+      108,
+      30
+    ],
+    [
+      30,
+      232
+    ]
+  ],
+  "train_rows": 1600,
+  "test_rows": 400,
+  "provenance": {
+    "rows": 2000,
+    "seed": 42,
+    "policy": "combined_label=1 iff at least one PRESENT component has a positive source label; independently paired components are synthetic scenarios, not linked incidents.",
+    "features": [
+      "module_a_score",
+      "module_b_score",
+      "module_c_score"
+    ],
+    "missing_policy": "Absent scores encoded as zero; zero score and missing are not distinguished by the three-feature model.",
+    "base_scores": "A/B from their held-out source pools; C from fitted real-text model plus rules (in-sample). No base models retrained.",
+    "caveat": "All joint pairings and combined labels are synthetic policy data. A telemetry is synthetic; C fear is unvalidated. Not real-world performance.",
+    "data_sha256": "6703c830aefc71830563c9aead989717e73c54d4814e3c83b84e880d6897e44e",
+    "model_sha256": {
+      "a": "f80622d3f1ae76aa5ea4f23d8baed120a30d62b85673fe7692b222878c3b8872",
+      "b": "0d616bdacc31bbd381d5943c9ba8ca18c930b37a5be415c6e8524fc68440c8b8",
+      "c": "4e89e6b0773e988ce777cc5deed46addde9e0d0b3c30b3751fcec6a71a2ff6da"
+    },
+    "counts": {
+      "('test', 0)": 138,
+      "('test', 1)": 262,
+      "('train', 0)": 546,
+      "('train', 1)": 1054
+    }
+  }
+}

@@ -1,0 +1,47 @@
+[
+  {
+    "example_id": "ghaziabad_2025",
+    "text": "her phone number was being misused and would be disconnected in the next two hours.",
+    "signature": "fear_authority",
+    "source_url": "https://indianexpress.com/article/cities/delhi/ghaziabad-woman-digital-arrest-fraud-9981603/",
+    "source_kind": "reported allegation fragment; not verbatim caller transcript",
+    "publication_date": "2025-05-04",
+    "label_basis": "Manual contextual annotation: reported impersonation, accusation, isolation or threat in a documented scam; not an independently adjudicated transcript label."
+  },
+  {
+    "example_id": "surat_2024",
+    "text": "He told me that about 15 passports and other documents were seized and arrest procedures will be done.",
+    "signature": "fear_authority",
+    "source_url": "https://indianexpress.com/article/cities/ahmedabad/gujarat-confidential-digital-arrest-9699602/",
+    "source_kind": "victim-reported speech excerpt; not verbatim caller transcript",
+    "publication_date": "2024-12-01",
+    "label_basis": "Manual contextual annotation: reported impersonation, accusation, isolation or threat in a documented scam; not an independently adjudicated transcript label."
+  },
+  {
+    "example_id": "gurgaon_2023",
+    "text": "They asked me to join a Skype call and said I needed to keep my camera and mic on at all times.",
+    "signature": "fear_authority",
+    "source_url": "https://indianexpress.com/article/cities/delhi/duped-in-digital-arrest-scam-how-a-gurgaon-woman-got-back-rs-7-lakh-two-months-later-9064217/",
+    "source_kind": "victim-reported speech excerpt; not verbatim caller transcript",
+    "publication_date": "2023-12-12",
+    "label_basis": "Manual contextual annotation: reported impersonation, accusation, isolation or threat in a documented scam; not an independently adjudicated transcript label."
+  },
+  {
+    "example_id": "noida_2023",
+    "text": "an FIR has been registered against me and an arrest warrant issued by the Supreme Court",
+    "signature": "fear_authority",
+    "source_url": "https://www.ndtv.com/india-news/new-scam-noida-woman-digitally-arrested-duped-of-rs-11-lakh-4627048",
+    "source_kind": "victim complaint excerpt in PTI report; not verbatim caller transcript",
+    "publication_date": "2023-12-02",
+    "label_basis": "Manual contextual annotation: reported impersonation, accusation, isolation or threat in a documented scam; not an independently adjudicated transcript label."
+  },
+  {
+    "example_id": "bahuguna_2025",
+    "text": "If you try to contact anyone, we'll arrest you.",
+    "signature": "fear_authority",
+    "source_url": "https://www.ndtv.com/india-news/held-hostage-for-40-hours-youtuber-ankush-bahugunas-digital-arrest-ordeal-7405352",
+    "source_kind": "caller threat quoted in victim account",
+    "publication_date": "2025-01-05",
+    "label_basis": "Manual contextual annotation: reported impersonation, accusation, isolation or threat in a documented scam; not an independently adjudicated transcript label."
+  }
+]

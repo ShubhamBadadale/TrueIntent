@@ -25,26 +25,17 @@ def test_predict_module_a_returns_float_in_range():
     assert isinstance(score, float), f"Expected float return type, got {type(score)}"
     assert 0.0 <= score <= 1.0, f"Expected risk score between 0 and 1, got {score}"
 
-def test_predict_module_a_relative_risk():
-    low_risk_txn = {
-        "amount": 500.0,
-        "timestamp": "2026-09-12T14:00:00Z",
-        "device_id": "dev_0001",
-        "is_active_call": False,
-        "transaction_velocity": 1
-    }
-    
-    high_risk_txn = {
-        "amount": 80000.0,
-        "timestamp": "2026-09-12T02:30:00Z",
-        "device_id": "dev_new_9999",
-        "is_active_call": True,
-        "transaction_velocity": 7
-    }
-    
-    low_score = predict_module_a(low_risk_txn)
-    high_score = predict_module_a(high_risk_txn)
-    
-    assert 0.0 <= low_score <= 1.0
-    assert 0.0 <= high_score <= 1.0
-    assert high_score > low_score, f"Expected high risk score ({high_score}) to be greater than low risk score ({low_score})"
+def test_predict_module_a_matches_six_feature_model():
+    # The old amount-monotonic demo was a property of the synthetic generator,
+    # not a valid invariant for observed IEEE-CIS fraud.
+    import pandas as pd
+    from ml.predict_module_a import load_model
+    from ml.generate_module_a_data import FEATURES
+    artifact = load_model()
+    assert artifact['feature_cols'] == FEATURES
+    transaction = dict(amount=500.0, hour_of_day=14, is_new_device=0,
+                       is_active_call=False, transaction_velocity=1)
+    row = pd.DataFrame([dict(amount=500.0, hour_of_day=14, is_odd_hour=0,
+                            is_new_device=0, is_active_call=0, transaction_velocity=1)])[FEATURES]
+    expected = float(artifact['model'].predict_proba(row)[0, 1])
+    assert predict_module_a(transaction) == pytest.approx(expected)

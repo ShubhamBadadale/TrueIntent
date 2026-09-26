@@ -1,8 +1,16 @@
 import os
 import sys
+import pytest
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
+from ml import predict_module_b
 from ml.predict_module_b import check_url
+
+
+@pytest.fixture(autouse=True)
+def rules_only(monkeypatch):
+    """Rule regression tests must not depend on locally installed model artifacts."""
+    monkeypatch.setattr(predict_module_b, "_load_ml_model", lambda: None)
 
 
 def _result(url: str) -> dict:
@@ -67,13 +75,9 @@ def test_long_url_and_suspicious_chars():
     )
 
 
-def test_ml_status_reports_rules_only_when_dataset_pending():
-    """Without data/raw/module_b_urls.csv, ML component must report rules-only/pending."""
-    dataset_path = os.path.join("data", "raw", "module_b_urls.csv")
-    if os.path.exists(dataset_path):
-        import pytest
-        pytest.skip("Dataset present — ML combined mode expected, skipping pending check.")
+def test_ml_status_reports_rules_only_when_model_unavailable():
+    """Missing model must fall back even when a dataset exists."""
     res = _result("https://www.google.com/")
     assert "ml_status" in res
     assert "rules_only" in res["ml_status"]
-    assert "pending" in res["ml_status"].lower()
+    assert "unavailable" in res["ml_status"].lower()
