@@ -4,27 +4,24 @@ This document defines the official data schemas for all datasets used across the
 
 ---
 
-## 1. Module A: Transaction + Call Correlation Dataset
+## 1. Module A: Source-unit Amount Benchmark
 
-**Purpose:** Evaluates financial transaction risk combined with concurrent device state (e.g., active call status).
+**Current scope:** Amount-only IEEE-CIS research benchmark. Real INR transfer
+assessment is disabled. See [correctness update](../docs/MODULE_A_CORRECTNESS.md).
 
-Phase 2 training CSV schema (runtime inference still accepts the existing six-feature
-contract and its timestamp/device_id convenience inputs):
+| Column | Type | Meaning |
+|---|---|---|
+| TransactionID | Integer | Source row identifier, audit/split only |
+| TransactionDT | Numeric | Relative source seconds, chronological split only |
+| amount | Finite nonnegative float | Unchanged TransactionAmt, original source units |
+| amount_unit | Literal ieee_cis_source | Required explicit unit assertion |
+| label | fraud or legitimate | Source isFraud mapped to the historical card-fraud target |
 
-| Column | Type | Origin / meaning |
-| :--- | :--- | :--- |
-| `TransactionID` | Integer | Source row ID; audit only, not a feature |
-| `TransactionDT` | Numeric | Relative source seconds; chronological split/history only |
-| `amount` | Float | Real TransactionAmt in source units |
-| `hour_of_day` | Integer 0?23 | Relative time phase proxy |
-| `is_odd_hour` | Integer 0/1 | Existing hour rule on that proxy |
-| `is_new_device` | Integer 0/1 | Synthetic novelty scenario |
-| `is_active_call` | Integer 0/1 | Synthetic call scenario |
-| `transaction_velocity` | Nonnegative integer | Prior-hour count for anonymized card/address proxy |
-| `label` | Enum | Real source isFraud mapped to fraud/legitimate |
-
-No deployment timestamp or device ID is fabricated. Exact definitions and provenance
-are in [DATASHEET.md](DATASHEET.md). Only the six named features enter XGBoost.
+Only amount enters the model. No clock-hour, odd-hour, device, call-state or
+velocity features are generated or used. Old datasets/artifacts are incompatible.
+Missing or INR units cannot be converted implicitly. API timestamp, device and
+telemetry fields are legacy metadata; a device ID is optional unless binding a
+call report. Responses are benchmark scores, not transfer-risk verdicts.
 
 ---
 
@@ -63,16 +60,16 @@ are unchanged. See [Module C datasheet](MODULE_C_DATASHEET.md).
 
 | Module | Primary Target Signal | Primary Output | Input Schema File |
 | :--- | :--- | :--- | :--- |
-| **Module A** | Transaction + Active Call correlation | Fraud probability | `data/raw/module_a_transactions.csv` |
+| **Module A** | Source-unit amount only | Uncalibrated benchmark score | `data/raw/module_a_transactions.csv` |
 | **Module B** | URL structure & domain features | Phishing probability | `data/raw/module_b_urls.csv` |
 | **Module C** | Text content & psychological tactic | Scam probability + type | `data/raw/signature_examples.csv` |
 
-## Optional Android call report (API only)
+## Legacy Android call report (not a scoring feature)
 
 Transaction requests accept optional `call_telemetry` containing `device_id` (matching
 transaction), `is_active_call` (boolean), and timezone-aware `timestamp` (fresh within
 120 seconds, maximum 30 seconds future). This overrides the manual call flag only
-for that request; it does not change the six-feature Module A training schema.
+for that request; none of these fields enter the amount-only model. Legacy Android requests without\nexplicit source units are rejected; real transaction scoring is disabled.
 See [Android companion](../docs/ANDROID_COMPANION.md).
 
 ## Module D synthetic scenarios

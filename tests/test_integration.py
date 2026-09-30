@@ -20,10 +20,8 @@ httpx = pytest.importorskip("httpx", reason="httpx required for TestClient")
 from fastapi.testclient import TestClient
 
 from app.main import app
-from ml.predict_module_a import predict_module_a
 from ml.predict_module_b import check_url
 from ml.predict_module_c import analyze_message
-from ml.predict_module_d import compute_unified_score
 
 client = TestClient(app)
 
@@ -42,11 +40,6 @@ MODEST_TXN = {
     "is_active_call": True,
     "transaction_velocity": 2,
 }
-
-
-def _tier_of_single_module(score: float) -> str:
-    """Tier a lone module score would get (same cutoffs as Module D)."""
-    return compute_unified_score(score, None, None)["tier"]
 
 
 # --- 1. URL flow: frontend -> API -> Module B coherence -----------------------
@@ -95,29 +88,12 @@ def test_message_with_embedded_url_folds_in_module_b():
     assert body["score"] >= text_only["score"]
 
 
-# Learned-policy integration regression (not a real incident evaluation).
-def test_combined_escalates_over_transaction_alone_thesis():
-    txn_score = float(predict_module_a(MODEST_TXN))
-    txn_tier = _tier_of_single_module(txn_score)
-    assert txn_tier == "Medium", f"Learned policy fixture drift: {txn_score}"
-
-    combined = client.post(
+def test_combined_rejects_obsolete_transaction_fusion():
+    response = client.post(
         "/check-combined", json={"transaction": MODEST_TXN, "text": FEAR_TEXT}
     )
-    assert combined.status_code == 200, combined.text
-    body = combined.json()
-
-    order = ["Low", "Medium", "High", "Critical"]
-    assert order.index(body["tier"]) > order.index(txn_tier), (
-        f"No escalation: txn-alone={txn_tier} ({txn_score}), combined={body['tier']} "
-        f"({body['score']}). The correlation layer failed its thesis."
-    )
-    assert body["score"] > txn_score
-    expl = body["explanation"]
-    # Both channels must be credited; nothing skipped may be implied as run.
-    assert "Module A (transaction" in expl and "Module C (message analysis" in expl
-    assert "Modules skipped: Module B (no URL submitted)" in expl
-    assert len(expl) > 0
+    assert response.status_code == 422
+    assert "fusion is disabled" in response.json()["detail"]
 
 
 # --- 4. Frontend wiring: portal calls the routes that exist -------------------

@@ -1,6 +1,12 @@
 # Keep the Docker build context small and reproducible.
-# (The backend image retrains Module A deterministically at build time,
-# so local data artifacts and models are intentionally excluded.)
+# Models are mounted read-only at runtime; training data is unnecessary.
+.venv/
+venv/
+**/.venv/
+**/.env
+**/.env.*
+.agents/
+.codex/
 backend/venv/
 frontend/node_modules/
 frontend/dist/
@@ -13,6 +19,6 @@ frontend/dist/
 .coverage
 htmlcov/
 data/raw/
-ml/models/*.pkl
+ml/models/
 tests/__pycache__/
 ChromeSetup.exe

@@ -23,6 +23,7 @@ FEAR_TEXT = (
 )
 VALID_TXN = {
     "amount": 45000.0,
+    "amount_unit": "ieee_cis_source",
     "timestamp": "2026-09-12T03:15:00Z",
     "device_id": "dev_test_123",
     "is_active_call": True,
@@ -100,10 +101,12 @@ def test_check_message_image_success_mocked(monkeypatch):
 
 
 # --- POST /check-transaction ---
-def test_check_transaction_success():
+def test_check_transaction_success(benchmark_model):
     r = client.post("/check-transaction", json=VALID_TXN)
     assert r.status_code == 200, r.text
     assert 0.0 <= r.json()["score"] <= 1.0
+    assert r.json()['analysis_scope'] == 'ieee_cis_amount_only_benchmark'
+    assert 'not an INR' in r.json()['explanation']
 
 
 def test_check_transaction_missing_field_error():

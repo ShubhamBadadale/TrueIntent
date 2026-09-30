@@ -38,6 +38,7 @@ export default function MessageCheck() {
   }
 
   function switchMode(next) {
+    if (loading) return
     setMode(next)
     setError('')
     setResult(null)

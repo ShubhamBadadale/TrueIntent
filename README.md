@@ -1,5 +1,13 @@
 # TrueIntent — Multi-Channel Fraud Intent Verification System
 
+**Module A correctness update:** Real INR transaction scoring and transaction-bearing
+`/check-combined` requests are disabled. The only supported A experiment is an
+amount-only IEEE-CIS benchmark with explicit `amount_unit: "ieee_cis_source"`.
+Legacy six-feature artifacts are rejected. Training requires the authorized source
+dataset; this checkout has no new artifact or measured v2 metrics. The older A/D
+scores and transaction demos below are historical, not current behavior.
+See [feature trace, fixes, tests and limits](docs/MODULE_A_CORRECTNESS.md).
+
 > Banks verify *who* you are. Nobody verifies *why* you're sending the money. TrueIntent closes that gap.
 
 TrueIntent helps a user (or analyst) check whether they are being manipulated into an authorized-but-fraudulent
@@ -48,11 +56,11 @@ Known limitations (read before evaluation): [`docs/LIMITATIONS.md`](docs/LIMITAT
 
 | Module | What it does | Implementation status |
 |---|---|---|
-| **A — Transaction–Call Correlation** | XGBoost risk probability from amount, time, device, `is_active_call`, velocity | Hybrid IEEE-CIS + synthetic call/device flags; chronological F1 0.1562, recall delta +11.39 pp. Not real-world performance; see `data/DATASHEET.md` |
-| **B — URL Safety Checker** | Rule checks (IP host, typosquatting, TLD, obfuscation, length, + optional live page fetch) blended 50/50 with TF-IDF char n-gram + Logistic Regression | **Active** — trained on 11,427 real historical URL rows; classifier holdout F1 0.9101 (not current real-world performance). See `data/README.md`. |
-| **C - Message/Screenshot Analyzer** | Trained TF-IDF + Logistic Regression with existing keyword safeguards and URL/OCR paths | **Active, fear unvalidated**: 5 cited fear excerpts, OOF recall 0/5. See `data/MODULE_C_DATASHEET.md`. |
-| **D - Unified Scorer + SHAP** | Learned three-score logistic policy; log-odds contributions and module explanations | Active on synthetic joint labels, not real incidents. [Evaluation](data/MODULE_D_DATASHEET.md) |
-| **E — Web Portal** | Three calm, senior-friendly input views + shared results card | React + Tailwind, wired to the API |
+| **A — Transaction benchmark** | Source-unit amount-only XGBoost contract; no INR, clock, device or call inference | Benchmark artifact unavailable; transaction fusion disabled. [Correctness](docs/MODULE_A_CORRECTNESS.md) |
+| **B — URL Safety Checker** | Offline rules blended with character TF-IDF + logistic regression; no page fetching | Historical public URL evaluation, including domain-disjoint splits. [Evaluation](docs/MODULE_B_EVALUATION.md) |
+| **C — Message/Screenshot Analyzer** | Lightweight TF-IDF intent classifier plus OCR and embedded URL analysis; keyword overrides disabled | Limited real authority/fear and multilingual examples. [Evaluation](docs/MODULE_C_INTENT_EVALUATION.md) |
+| **D — Unified Scorer** | Availability-aware logistic policy with interactions and explanations | Synthetic policy evaluation only, not real-world fraud validation. [Evaluation](docs/MODULE_D_FUSION_EVALUATION.md) |
+| **E — Web Portal** | Combined Fraud Analysis plus individual analysis tabs | Displays uncalibrated outputs as Risk Index; unavailable evidence is explicit |
 
 ---
 
@@ -190,20 +198,21 @@ Errors are clear 4xx with human-readable messages (malformed URL → 422, missin
 unreadable image → 400, OCR engine missing → 503) — never raw stack traces. The API skips live page
 fetching (`fetch_live_page=False`) for deterministic, offline-safe responses.
 
-### Docker packaging (legacy, not revalidated)
+### Docker packaging (local demo)
 
-The old Dockerfile assumes build-time synthetic training and excludes local artifacts.
-It requires updating before use with the current datasets; use native setup for these phases.
-The historical command is:
+The build installs dependencies and OCR but never trains models. Compose mounts
+`ml/models` read-only; provide trusted artifacts from this project's pinned Python
+3.11 environment. Missing models retain the API's explicit unavailable/fallback behavior.
+Docker was unavailable during final cleanup, so container startup is not verified locally.
 
 ```bash
 docker compose up --build
 ```
 
 - Frontend demo: `http://localhost:5173` · Backend API/docs: `http://localhost:8000` (`/docs`)
-- Module A build-time training now requires authorized IEEE-CIS data (or generated data plus metadata).
-  The backend image installs the Tesseract binary and retrains Module A at build
-  time; a fresh clone without the authorized data can no longer train Module A.
+- Module A is a source-unit benchmark, not INR transfer assessment. No synthetic
+  replacement is generated during builds. `/health` checks process liveness,
+  not model availability. Both published ports bind to localhost for this demo.
 - Stop with `docker compose down -v`. To target a remote backend, rebuild the frontend with
   `docker compose build --build-arg VITE_API_URL=http://<host>:8000`.
 

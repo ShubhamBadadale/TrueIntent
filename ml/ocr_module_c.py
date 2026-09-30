@@ -22,6 +22,7 @@ low-risk. Callers MUST check `ocr_status` before interpreting `score`:
 import io
 import os
 import re
+import warnings
 
 try:
     from ml.predict_module_c import analyze_message
@@ -41,7 +42,7 @@ CLEARER_SCREENSHOT_HINT = (
 )
 
 
-def _load_image(image_file):
+def _open_image(image_file):
     """Open image_file (path, bytes, file-like, or PIL Image) -> PIL Image."""
     # Local import keeps Pillow optional at module import time.
     try:
@@ -72,6 +73,22 @@ def _load_image(image_file):
         "image_file must be a file path, bytes, file-like object, "
         f"or PIL Image — got {type(image_file).__name__}"
     )
+
+
+def _load_image(image_file):
+    from PIL import Image
+    try:
+        with warnings.catch_warnings():
+            warnings.simplefilter('error', Image.DecompressionBombWarning)
+            image = _open_image(image_file)
+            if image.width * image.height > 10_000_000:
+                raise OSError('Screenshot exceeds 10 million pixels')
+            if image.format not in (None, 'PNG', 'JPEG', 'WEBP', 'BMP') or getattr(image, 'is_animated', False):
+                raise OSError('Unsupported image format or animation')
+            image.load()
+            return image
+    except (Image.DecompressionBombWarning, Image.DecompressionBombError) as exc:
+        raise OSError('Screenshot dimensions exceed safe limits') from exc
 
 
 def extract_text_from_image(image_file) -> str:
@@ -116,7 +133,7 @@ def extract_text_from_image(image_file) -> str:
         image = image.convert("L")
 
     try:
-        text = pytesseract.image_to_string(image)
+        text = pytesseract.image_to_string(image, timeout=15)
     except Exception as e:
         raise RuntimeError(
             "OCR engine failed — Tesseract binary may be missing or the "
@@ -133,7 +150,7 @@ def has_enough_text(text: str) -> bool:
     stripped = text.strip()
     if len(stripped) < MIN_OCR_TEXT_CHARS:
         return False
-    words = [w for w in re.split(r"\s+", stripped) if re.search(r"[A-Za-z0-9]", w)]
+    words = [w for w in re.split(r"\s+", stripped) if any(ch.isalnum() for ch in w)]
     return len(words) >= MIN_OCR_WORDS
 
 
@@ -146,6 +163,7 @@ def _failure_result(reason: str, ocr_status: str, ocr_text: str = "") -> dict:
         "ml_status": "not_applicable (no analyzable text extracted)",
         "ocr_text": ocr_text,
         "ocr_status": ocr_status,
+        "text_assessed": False,
     }
 
 

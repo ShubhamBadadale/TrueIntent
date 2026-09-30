@@ -3,7 +3,18 @@ import pytest
 from ml import predict_module_d as d
 
 
-def test_learned_contributions_reconstruct_score():
+def test_learned_contributions_reconstruct_score(tmp_path, monkeypatch):
+    # Controlled local artifact: exercise learned fusion without private model files.
+    import itertools
+    import joblib
+    import pandas as pd
+    from sklearn.linear_model import LogisticRegression
+    columns = ['module_a_score', 'module_b_score', 'module_c_score']
+    X = pd.DataFrame(list(itertools.product([0., 1.], repeat=3)), columns=columns)
+    model = LogisticRegression().fit(X, (X.sum(axis=1) >= 2).astype(int))
+    path = tmp_path / 'fusion_fixture.pkl'
+    joblib.dump({'model': model, 'feature_cols': columns}, path)
+    monkeypatch.setattr(d, '_get_model_path', lambda: str(path))
     result = d.compute_unified_score(.2, .8, None)
     details = result['details']
     assert details['scoring_method'] == 'logistic_synthetic_policy'

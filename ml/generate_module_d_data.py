@@ -23,10 +23,12 @@ def active_score(result):
     return result['score']
 
 
-def generate_module_d_data():
+def generate_legacy_module_d_data():
     rng=np.random.default_rng(42)
     a=pd.read_csv(ROOT/'data/raw/module_a_transactions.csv')
     am=joblib.load(ROOT/'ml/models/module_a.pkl')
+    if am.get('feature_contract', {}).get('version') == 2:
+        raise ValueError('Module A v2 is a source-unit benchmark; existing transaction fusion is disabled.')
     a=a[a.TransactionDT>=am['split']['cutoff_TransactionDT']].copy()
     a['score']=am['model'].predict_proba(a[am['feature_cols']])[:,1]
     a['positive']=a.label.eq('fraud').astype(int)
@@ -76,6 +78,12 @@ def generate_module_d_data():
     path.with_suffix('.metadata.json').write_text(json.dumps(metadata,indent=2)+'\n',encoding='utf-8')
     print(json.dumps(metadata,indent=2))
     return data
+
+
+def generate_module_d_data():
+    """Current explicit simulation; never silently reinterpret Module A benchmark outputs."""
+    from ml.evaluate_module_d import generate_scenarios
+    return generate_scenarios(ROOT / 'data/raw/module_d_interaction_scenarios.csv')
 
 
 if __name__=='__main__': generate_module_d_data()

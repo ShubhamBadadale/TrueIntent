@@ -9,8 +9,12 @@ Combines Module A (transaction+call), Module B (URL safety) and Module C
 
 Design notes
 ------------
-* Learned logistic scorer over the three scores; zero-imputation for missing
-  modules, trained on explicitly synthetic policy labels. Fixed weighted sum
+* Transaction-context fusion is disabled after Module A's source-unit benchmark
+  correction. Numeric scores remain supported for policy experiments; the A SHAP
+  helper is available only for offline benchmark explanation.
+* Version 2 uses availability flags and score/tactic/call interactions. C text
+  and URL evidence are separated when metadata is available. Old three-score
+  artifacts remain readable. Models learn synthetic policy labels. Fixed weighted sum
   ONLY when the artifact is missing (warning logged), renormalized over modules
   that actually ran. Original fallback weights are A=.45, B=.25, C=.30.
 * SHAP: Module A uses shap.TreeExplainer on the XGBoost model; Module C (only
@@ -45,6 +49,15 @@ def _load_learned_model():
     stamp = (path, os.stat(path).st_mtime_ns, os.stat(path).st_size)
     if _D_CACHE is None or _D_CACHE[0] != stamp:
         artifact = joblib.load(path)  # Corruption/incompatibility must NOT silently fall back.
+        if artifact.get('format_version') == 2:
+            from ml.features_module_d import FEATURES
+            model = artifact.get('model')
+            if (artifact.get('feature_cols') != FEATURES or model is None
+                    or list(model.classes_) != [0, 1] or model.coef_.shape != (1, len(FEATURES))
+                    or not np.isfinite(model.coef_).all() or not np.isfinite(model.intercept_).all()):
+                raise ValueError('Incompatible Module D interaction artifact')
+            _D_CACHE = (stamp, artifact)
+            return artifact
         expected = ["module_a_score", "module_b_score", "module_c_score"]
         if artifact.get("feature_cols") != expected or list(artifact["model"].classes_) != [0, 1]:
             raise ValueError("Incompatible Module D model artifact")
@@ -118,72 +131,15 @@ def _tier_for(score: float) -> str:
 # Module A: SHAP on XGBoost features -> plain-language factors
 # -----------------------------------------------------------------------------
 def _build_module_a_features(transaction: dict, artifact: dict):
-    """Mirror of predict_module_a's feature engineering (kept in sync by test)."""
-    import pandas as pd
-
-    device_counts = artifact.get("device_counts", {})
-    amount = float(transaction.get("amount", 0.0))
-    is_active_call = 1 if bool(transaction.get("is_active_call", False)) else 0
-    velocity = int(transaction.get("transaction_velocity", 1))
-
-    if "is_odd_hour" in transaction:
-        is_odd_hour = 1 if bool(transaction["is_odd_hour"]) else 0
-        hour_of_day = int(transaction.get("hour_of_day", 12))
-    elif "timestamp" in transaction and isinstance(transaction["timestamp"], str):
-        try:
-            hour_of_day = int(pd.to_datetime(transaction["timestamp"]).hour)
-        except Exception:
-            hour_of_day = 12
-        is_odd_hour = 1 if (hour_of_day < 6 or hour_of_day >= 23) else 0
-    elif "hour_of_day" in transaction:
-        hour_of_day = int(transaction["hour_of_day"])
-        is_odd_hour = 1 if (hour_of_day < 6 or hour_of_day >= 23) else 0
-    else:
-        hour_of_day = 12
-        is_odd_hour = 0
-
-    if "is_new_device" in transaction:
-        is_new_device = 1 if bool(transaction["is_new_device"]) else 0
-    elif "device_id" in transaction:
-        dev_id = str(transaction["device_id"])
-        is_new_device = 1 if device_counts.get(dev_id, 0) <= 2 else 0
-    else:
-        is_new_device = 0
-
-    feature_names = artifact.get(
-        "feature_cols",
-        ["amount", "hour_of_day", "is_odd_hour", "is_new_device",
-         "is_active_call", "transaction_velocity"],
-    )
-    row = {
-        "amount": amount,
-        "hour_of_day": hour_of_day,
-        "is_odd_hour": is_odd_hour,
-        "is_new_device": is_new_device,
-        "is_active_call": is_active_call,
-        "transaction_velocity": velocity,
-    }
-    values = {k: row[k] for k in feature_names}
-    return values
+    """Use the exact training/serving transform for offline benchmark explanations."""
+    from ml.features_module_a import transaction_features, validate_artifact
+    validate_artifact(artifact)
+    return transaction_features(transaction).iloc[0].to_dict()
 
 
 def _describe_module_a_feature(name: str, value) -> str | None:
-    """Value-aware plain-language template per feature. None if not statable."""
-    if name == "is_active_call":
-        return "active call reported during transfer" if int(value) == 1 else None
     if name == "amount":
-        try:
-            return f"transfer amount (\u20b9{float(value):,.0f})"
-        except (TypeError, ValueError):
-            return "transfer amount"
-    if name == "transaction_velocity":
-        return f"{int(value)} transfers reported in the last hour"
-    if name == "is_new_device":
-        return "transfer from a new or unrecognised device" if int(value) == 1 else None
-    if name == "is_odd_hour":
-        return "transfer at an unusual late-night hour" if int(value) == 1 else None
-    if name == "hour_of_day":
-        return f"transfer at an unusual hour ({int(value)}:00)"
+        return f"benchmark amount ({float(value):,.2f} IEEE-CIS source units)"
     return None
 
 
@@ -232,26 +188,8 @@ def _shap_factors_module_a(module_a_result) -> tuple[list, str]:
                 break
         return factors, "shap_tree_explainer"
     except Exception:
-        # Graceful fallback: value-aware heuristics (honestly labeled).
-        try:
-            values = _build_module_a_features(transaction, {"device_counts": {}})
-        except Exception:
-            return [], "heuristic_failed"
-        factors = []
-        for name in ("is_active_call", "transaction_velocity", "amount",
-                     "is_new_device", "is_odd_hour"):
-            phrase = _describe_module_a_feature(name, values.get(name))
-            if phrase and phrase not in factors:
-                # Only state binary flags when active; amount/velocity only
-                # when notably elevated (avoid stating benign values as risk).
-                if name == "amount" and float(values.get("amount", 0)) < 15000:
-                    continue
-                if name == "transaction_velocity" and int(values.get("transaction_velocity", 1)) < 3:
-                    continue
-                factors.append(phrase)
-            if len(factors) >= 2:
-                break
-        return factors, "heuristic_fallback"
+        # Failed attribution must not invent call/device/nighttime risk factors.
+        return [], "attribution_unavailable"
 
 
 # -----------------------------------------------------------------------------
@@ -263,7 +201,7 @@ def _shorten_url_reason(reason: str) -> str:
         return "link uses a raw IP address instead of a registered domain"
     if "typosquatting" in r or "spoofing" in r:
         return "link mimics a known brand domain"
-    if "login" in r or "credential" in r:
+    if "form" in r and ("login" in r or "credential" in r):
         return "destination page contains a login/credential form"
     if "high-risk top-level" in r:
         return "link uses a high-risk domain ending"
@@ -375,18 +313,24 @@ def _factors_module_c(module_c_result) -> tuple[list, str]:
 # Unified scoring
 # -----------------------------------------------------------------------------
 def compute_unified_score(module_a_result=None, module_b_result=None,
-                           module_c_result=None) -> dict:
+                           module_c_result=None, *, active_call=None) -> dict:
     """
     Combine per-module risk scores into one tier + plain-language explanation.
 
     Parameters accept None (module skipped), a score float, or the module's
-    result dict (optionally carrying context: Module A dict may include the
-    raw "transaction" dict for SHAP; Module C dict may include the analyzed
-    "text" for token attribution).
+    result dict. Transaction-context dictionaries are refused: Module A's new
+    benchmark must not feed the old transaction policy. Module C dictionaries
+    may include analyzed "text" for token attribution.
 
     Returns {tier, score, explanation, details}. Raises ValueError if no
     module ran, TypeError/ValueError on malformed inputs.
     """
+    if isinstance(module_a_result, dict) and (isinstance(module_a_result.get("transaction"), dict)
+                                             or module_a_result.get('analysis_scope') == 'ieee_cis_amount_only_benchmark'):
+        raise ValueError(
+            "Transaction fusion is disabled: Module A is a source-unit benchmark, "
+            "incompatible with the existing combined policy."
+        )
     score_a = _extract_score(module_a_result)
     score_b = _extract_score(module_b_result)
     score_c = _extract_score(module_c_result)
@@ -411,6 +355,8 @@ def compute_unified_score(module_a_result=None, module_b_result=None,
         )
 
     artifact = _load_learned_model()
+    if artifact is not None and artifact.get('format_version') == 2:
+        return _interaction_result(artifact, module_a_result, module_b_result, module_c_result, active_call)
     names = ["module_a", "module_b", "module_c"]
     supplied = [score_a, score_b, score_c]
     contributions = {}
@@ -534,29 +480,68 @@ def compute_unified_score(module_a_result=None, module_b_result=None,
     }
 
 
+def _interaction_result(artifact, a_result, b_result, c_result, active_call):
+    from ml.features_module_d import FEATURES, feature_row, score
+    def read(value):
+        return score(value['score'] if isinstance(value, dict) else value)
+    a, b, c = read(a_result), read(b_result), read(c_result)
+    credential, authority = 0., 0.
+    evidence_note = 'C text-only evidence unavailable; legacy combined C score may include a URL.'
+    if isinstance(c_result, dict):
+        if c_result.get('text_assessed') is False:
+            raise ValueError('Module C text was not assessed')
+        probabilities = c_result.get('intent_probabilities') or {}
+        if 'text_score' in c_result:
+            c = c_result['text_score']
+            evidence_note = 'C text and embedded URL scores separated; URL evidence counted once using max.'
+        elif 'benign' in probabilities:
+            c = 1 - float(probabilities['benign'])
+            evidence_note = 'C text score reconstructed from P(benign); legacy URL decomposition may be incomplete.'
+        embedded = c_result.get('embedded_url_score')
+        if embedded is not None and float(embedded) > 0:
+            b = max(b or 0., float(embedded))
+        credential = c_result.get('credential_request', probabilities.get('credential_theft', 0.))
+        authority = c_result.get('authority_fear', min(1., probabilities.get('authority_fear', 0.) + probabilities.get('digital_arrest', 0.)))
+    row = feature_row(a, b, c, active_call, credential, authority)
+    frame = pd.DataFrame([row], columns=FEATURES)
+    model = artifact['model']
+    unified = round(float(model.predict_proba(frame)[0, 1]), 4)
+    contributions = {name: float(coef) * row[name] for name, coef in zip(FEATURES, model.coef_[0])}
+    descriptions = {
+        'module_a_score': f'transaction risk score {a or 0:.2f}',
+        'module_b_score': f'link risk score {b or 0:.2f}',
+        'module_c_score': f'message text risk score {c or 0:.2f}',
+        'message_transaction': 'suspicious message and unusual transaction',
+        'call_transaction': 'reported active call and unusual transaction',
+        'url_credentials': 'URL risk combined with a model-indicated credential request',
+        'authority_transaction': 'model-indicated authority/fear language and unusual transaction',
+    }
+    factors = [descriptions[name] for name in sorted(descriptions, key=lambda n: contributions[n], reverse=True)
+               if contributions[name] > 0 and row[name] > .1][:3]
+    supplied = [a, b, c]
+    ran = [f'Module {name.upper()}' for name, value in zip('abc', supplied) if value is not None]
+    skipped = [f'Module {name.upper()} (no {kind} submitted)' for name, kind, value
+               in zip('abc', ('transaction', 'URL', 'message'), supplied) if value is None]
+    tier = _tier_for(unified)
+    explanation = (f'{tier} synthetic-policy risk index ({unified:.2f}). '
+                   + ('Factors: ' + '; '.join(factors) + '. ' if factors else '')
+                   + 'Modules contributing: ' + ', '.join(ran) + '. Modules skipped: '
+                   + (', '.join(skipped) if skipped else 'none') + '. '
+                   + 'This index is not a calibrated real-world fraud probability.')
+    return dict(tier=tier, score=unified, explanation=explanation, details=dict(
+        scoring_method='logistic_interactions_synthetic_policy',
+        model_caveat='Synthetic labels and detector scores; no real incident validation. Module A remains benchmark-only.',
+        module_scores=dict(module_a=a, module_b=b, module_c=c),
+        availability={name: value is not None for name, value in zip(('module_a', 'module_b', 'module_c'), supplied)},
+        active_call=active_call, call_status_source='user-reported' if active_call is not None else 'unknown',
+        feature_values=row, feature_contributions_log_odds=contributions,
+        intercept=float(model.intercept_[0]), fusion_shap_method='linear_zero_reference_log_odds',
+        contribution_caveat='Exact coefficient products for engineered features; interactions are not independent causal effects.',
+        channel_evidence_note=evidence_note,
+        weights=dict(zip(FEATURES, map(float, model.coef_[0]))),
+        weight_semantics='logistic coefficients, not normalized importance shares',
+    ))
+
+
 if __name__ == "__main__":
-    low = compute_unified_score(
-        {"score": 0.01, "transaction": {
-            "amount": 500.0, "timestamp": "2026-09-12T14:00:00Z",
-            "device_id": "dev_0001", "is_active_call": False,
-            "transaction_velocity": 1}},
-        {"score": 0.0, "reasons": []},
-        {"score": 0.0, "signature": "none", "reasons": [],
-         "text": "Hey, lunch tomorrow?"},
-    )
-    print(low["tier"], low["score"])
-    print(low["explanation"], "\n")
-    high = compute_unified_score(
-        {"score": 0.99, "transaction": {
-            "amount": 80000.0, "timestamp": "2026-09-12T02:30:00Z",
-            "device_id": "dev_new_9999", "is_active_call": True,
-            "transaction_velocity": 7}},
-        {"score": 0.75, "reasons": [
-            "Host is a raw IP address (1.2.3.4) rather than a registered domain name",
-            "Potential typosquatting / brand spoofing targeting 'hdfc'"]},
-        {"score": 0.9, "signature": "fear_authority",
-         "reasons": ["Matched fear/authority pattern: 'under investigation'"],
-         "text": "You are under investigation. Stay on the line."},
-    )
-    print(high["tier"], high["score"])
-    print(high["explanation"])
+    print(compute_unified_score(None, {"score": 0.6, "reasons": []}, None))

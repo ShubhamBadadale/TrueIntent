@@ -16,6 +16,8 @@ if _PROJECT_ROOT not in sys.path:
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.concurrency import run_in_threadpool
+from ml.features_module_b import parse_url, hostname, is_ip
 
 from backend.app.schemas import (
     CombinedRequest,
@@ -28,6 +30,7 @@ from backend.app.schemas import (
 )
 from ml.ocr_module_c import analyze_image
 from ml.predict_module_a import predict_module_a
+from ml.features_module_a import BENCHMARK_NOTICE, ModuleAUnavailableError
 from ml.predict_module_b import check_url
 from ml.predict_module_c import analyze_message
 from ml.predict_module_d import compute_unified_score
@@ -52,18 +55,15 @@ def _normalize_url_or_400(url: str) -> str:
     candidate = (url or "").strip()
     if not candidate:
         raise HTTPException(status_code=422, detail="url must be a non-empty string.")
-    if any(ch.isspace() for ch in candidate):
-        raise HTTPException(status_code=422, detail=f"Invalid URL (contains whitespace): '{url}'.")
-    parsed = urllib.parse.urlparse(
-        candidate if "://" in candidate else "http://" + candidate
-    )
-    host = (parsed.hostname or "").strip()
-    if not host or ("." not in host and host != "localhost"):
-        raise HTTPException(
-            status_code=422,
-            detail=f"Invalid URL (could not parse a domain from '{url}'). "
-            "Expected something like 'https://example.com/login'.",
-        )
+    try:
+        if len(candidate) > 8192 or any(ch.isspace() or ord(ch) < 32 for ch in candidate) or "\\" in candidate:
+            raise ValueError("Invalid characters or length")
+        parse_url(candidate)
+        host = hostname(candidate)
+        if not host or ("." not in host and host != "localhost" and not is_ip(host)):
+            raise ValueError("Invalid host")
+    except (ValueError, UnicodeError):
+        raise HTTPException(status_code=422, detail="Invalid URL. Expected an HTTP(S) address such as https://example.com/login.")
     return candidate
 
 
@@ -124,7 +124,7 @@ async def post_check_message(
                 "Upload a PNG or JPEG chat screenshot.",
             )
         try:
-            content = await image.read()
+            content = await image.read(MAX_IMAGE_BYTES + 1)
         except Exception:
             raise HTTPException(status_code=400, detail="Could not read the uploaded file.")
         if not content:
@@ -135,7 +135,7 @@ async def post_check_message(
                 detail="Uploaded image exceeds the 10 MB size limit.",
             )
         try:
-            result = analyze_image(content, fetch_live_page=False)
+            result = await run_in_threadpool(analyze_image, content, fetch_live_page=False)
         except Exception:
             raise HTTPException(
                 status_code=500, detail="Screenshot analysis failed unexpectedly. Please retry."
@@ -152,23 +152,33 @@ async def post_check_message(
                 detail="OCR engine unavailable on the server. "
                 "As a fallback, paste the chat text directly in 'text'.",
             )
+        if status == 'ok' and result.get('text_assessed') is False:
+            raise HTTPException(status_code=503, detail='Message model unavailable; text risk was not assessed.')
         return MessageCheckResponse(
             score=result["score"], signature=result["signature"],
             reasons=result["reasons"], ml_status=result.get("ml_status", ""),
             ocr_text=result.get("ocr_text"), ocr_status=status,
+            intent=result.get('intent'), intent_probabilities=result.get('intent_probabilities', {}),
+            rule_evidence=result.get('rule_evidence', []), text_assessed=result.get('text_assessed', False),
         )
 
     # Text flow.
+    if len(text) > 20000:
+        raise HTTPException(status_code=422, detail="Message exceeds the 20,000 character limit.")
     try:
-        result = analyze_message(text.strip(), fetch_live_page=False)
+        result = await run_in_threadpool(analyze_message, text.strip(), fetch_live_page=False)
     except Exception:
         raise HTTPException(
             status_code=500, detail="Message analysis failed unexpectedly. Please retry."
         )
+    if result.get('text_assessed') is False:
+        raise HTTPException(status_code=503, detail='Message model unavailable; text risk was not assessed.')
     result["text"] = text.strip()
     return MessageCheckResponse(
         score=result["score"], signature=result["signature"],
         reasons=result["reasons"], ml_status=result.get("ml_status", ""),
+        intent=result.get('intent'), intent_probabilities=result.get('intent_probabilities', {}),
+        rule_evidence=result.get('rule_evidence', []), text_assessed=result.get('text_assessed', False),
     )
 
 
@@ -180,17 +190,15 @@ def post_check_transaction(body: TransactionCheckRequest):
     payload = body.to_module_a_payload()
     try:
         score = predict_module_a(payload)
-    except FileNotFoundError:
-        raise HTTPException(
-            status_code=503,
-            detail="Transaction model artifact missing on the server. "
-            "Run ml/train_module_a.py first.",
-        )
+    except ModuleAUnavailableError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
     except Exception:
         raise HTTPException(
             status_code=500, detail="Transaction analysis failed unexpectedly. Please retry."
         )
-    return TransactionCheckResponse(score=float(score))
+    return TransactionCheckResponse(score=float(score), explanation=BENCHMARK_NOTICE)
 
 
 # -----------------------------------------------------------------------------
@@ -202,18 +210,12 @@ def post_check_combined(body: CombinedRequest):
     modules: dict = {}
 
     if body.transaction is not None:
-        payload = body.transaction.to_module_a_payload()
-        try:
-            score_a = float(predict_module_a(payload))
-        except FileNotFoundError:
-            raise HTTPException(
-                status_code=503,
-                detail="Transaction model artifact missing on the server.",
-            )
-        except Exception:
-            raise HTTPException(status_code=500, detail="Transaction analysis failed.")
-        mod_a = {"score": score_a, "transaction": payload}
-        modules["module_a"] = {"score": score_a}
+        raise HTTPException(
+            status_code=422,
+            detail="Transaction fusion is disabled: Module A is now a source-unit "
+            "amount-only benchmark, incompatible with the existing combined policy. "
+            "Use /check-transaction for benchmark inputs, or submit URL/text without a transaction.",
+        )
 
     if body.url is not None and body.url.strip() != "":
         url = _normalize_url_or_400(body.url)
@@ -228,11 +230,13 @@ def post_check_combined(body: CombinedRequest):
             mod_c = analyze_message(body.text.strip(), fetch_live_page=False)
         except Exception:
             raise HTTPException(status_code=500, detail="Message analysis failed.")
+        if mod_c.get('text_assessed') is False:
+            raise HTTPException(status_code=503, detail='Message model unavailable; text risk was not assessed.')
         mod_c["text"] = body.text.strip()  # context for Module D token attribution
         modules["module_c"] = {k: v for k, v in mod_c.items() if k != "text"}
 
     try:
-        unified = compute_unified_score(mod_a, mod_b, mod_c)
+        unified = compute_unified_score(mod_a, mod_b, mod_c, active_call=body.active_call)
     except (ValueError, TypeError) as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception:

@@ -48,6 +48,22 @@ function toPercent(score) {
  */
 export default function Results({ result, title }) {
   if (!result) return null
+  if (result.text_assessed === false || (result.ocr_status && result.ocr_status !== 'ok') ||
+      typeof result.score !== 'number' || !Number.isFinite(result.score) || result.score < 0 || result.score > 1) {
+    return <section aria-live="polite" className="mt-6 rounded-2xl border-2 p-6">
+      <h3>Unable to assess</h3>
+      <p>{result.reasons?.join(' ') || 'No valid risk assessment was returned. Please retry or paste the message text.'}</p>
+    </section>
+  }
+  if (result.analysis_scope === 'ieee_cis_amount_only_benchmark') {
+    return (
+      <section aria-live="polite" className="mt-6 rounded-2xl border-2 border-slate-300 bg-slate-50 p-6">
+        <h3 className="text-xl font-semibold">IEEE-CIS benchmark result</h3>
+        <p className="mt-3">Benchmark Risk Index: {result.score.toFixed(4)}</p>
+        <p className="mt-3">{result.explanation}</p>
+      </section>
+    )
+  }
   const score = Number(result.score)
   const tier = result.tier || tierForScore(score)
   const style = TIER_STYLES[tier] || TIER_STYLES.Low
@@ -71,13 +87,14 @@ export default function Results({ result, title }) {
           {tier} risk
         </span>
         <span className={`text-lg ${style.body}`}>
-          Score: <strong>{toPercent(score)}</strong>
+          Risk Index: <strong>{toPercent(score)}</strong>
         </span>
       </div>
 
       {title && <h3 className={`mt-4 text-xl font-semibold ${style.heading}`}>{title}</h3>}
 
       <p className={`mt-3 text-lg leading-relaxed ${style.body}`}>{explanation}</p>
+      <p className={`mt-3 ${style.body}`}>This index is not a calibrated probability of fraud.</p>
 
       {reasons.length > 0 && (
         <ul className={`mt-3 list-disc space-y-1 pl-6 text-base leading-relaxed ${style.body}`}>

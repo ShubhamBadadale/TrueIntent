@@ -2,6 +2,11 @@
 
 **Do not present these metrics as real-world performance.**
 
+**Historical v1 results below.** The six-feature model is disabled and its artifacts
+are rejected. Current code supports only an explicitly labelled source-unit,
+amount-only research benchmark, requiring retraining. No measured v2 results are
+available in this checkout. See [Module A correctness update](../docs/MODULE_A_CORRECTNESS.md).
+
 ## Source and choice
 
 IEEE-CIS Fraud Detection, provided locally by the user from the
