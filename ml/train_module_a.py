@@ -1,4 +1,4 @@
-"""Chronological evaluation and paired synthetic-telemetry ablation."""
+"""Chronological evaluation of the source-unit amount-only IEEE-CIS benchmark."""
 import json
 from pathlib import Path
 import sys
@@ -8,23 +8,14 @@ import pandas as pd
 from sklearn.metrics import precision_score, recall_score, f1_score, confusion_matrix
 import xgboost as xgb
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from ml.generate_module_a_data import FEATURES, SYNTHETIC, backup, generate_module_a_data, sha256
-
-
-def preprocess_features(df: pd.DataFrame, device_counts: dict = None):
-    missing = set(FEATURES) - set(df.columns)
-    if missing:
-        raise ValueError(f'Missing features {sorted(missing)}; regenerate Module A data')
-    features = df[FEATURES].apply(pd.to_numeric, errors='raise')
-    if not np.isfinite(features.to_numpy()).all():
-        raise ValueError('Non-finite features')
-    for name in ['is_odd_hour', *SYNTHETIC]:
-        if not features[name].isin([0, 1]).all():
-            raise ValueError(f'{name} must be binary')
-    return features, {} if device_counts is None else device_counts
+from ml.generate_module_a_data import backup, generate_module_a_data, sha256
+from ml.features_module_a import FEATURES, FEATURE_CONTRACT, BENCHMARK_NOTICE, preprocess_features
 
 
 def chronological_split(df):
+    if (len(df) < 2 or df.TransactionID.isna().any() or df.TransactionID.duplicated().any()
+            or not np.isfinite(df.TransactionDT).all()):
+        raise ValueError('Invalid chronological split identifiers or times')
     ordered = df.sort_values(['TransactionDT', 'TransactionID']).reset_index(drop=True)
     cutoff = ordered.TransactionDT.iloc[int(len(ordered) * 0.8)]
     train = ordered[ordered.TransactionDT < cutoff]
@@ -50,38 +41,35 @@ def train_module_a(data_path: str = 'data/raw/module_a_transactions.csv', model_
     metadata = json.loads(data_path.with_suffix('.metadata.json').read_text(encoding='utf-8'))
     if metadata['data_sha256'] != sha256(data_path):
         raise ValueError('Dataset hash differs from provenance; regenerate before training')
+    if metadata.get('feature_contract') != FEATURE_CONTRACT:
+        raise ValueError('Obsolete dataset contract; regenerate from authorized IEEE-CIS source data')
     df = pd.read_csv(data_path)
     if not df.label.isin(['fraud', 'legitimate']).all():
         raise ValueError('Unknown labels')
     train, test, cutoff = chronological_split(df)
-    X_train, _ = preprocess_features(train)
-    X_test, _ = preprocess_features(test)
+    X_train = preprocess_features(train)
+    X_test = preprocess_features(test)
     y_train = (train.label == 'fraud').astype(int)
     y_test = (test.label == 'fraud').astype(int)
     parameters = dict(n_estimators=100, max_depth=4, learning_rate=0.1, random_state=42,
                       eval_metric='logloss', tree_method='hist', n_jobs=4,
                       scale_pos_weight=float((y_train == 0).sum() / y_train.sum()))
-    results = {}
-    for name, columns in [('with_telemetry', FEATURES),
-                          ('without_telemetry', [c for c in FEATURES if c not in SYNTHETIC])]:
-        model = xgb.XGBClassifier(**parameters)
-        model.fit(X_train[columns], y_train)
-        results[name] = evaluate(y_test, model.predict_proba(X_test[columns])[:, 1] >= 0.5)
-        if results[name]['f1'] == 1.0:
-            raise RuntimeError('Perfect F1: stop publication and investigate leakage/provenance')
-        if name == 'with_telemetry':
-            full_model = model
-    report = {'metrics': results['with_telemetry'], 'ablation': results,
-              'recall_delta': results['with_telemetry']['recall'] - results['without_telemetry']['recall'],
+    model = xgb.XGBClassifier(**parameters)
+    model.fit(X_train, y_train)
+    metrics = evaluate(y_test, model.predict_proba(X_test)[:, 1] >= 0.5)
+    if metrics['f1'] == 1.0:
+        raise RuntimeError('Perfect F1: stop publication and investigate leakage/provenance')
+    report = {'metrics': metrics, 'feature_contract': FEATURE_CONTRACT,
               'split': {'method': 'chronological 80/20; equal timestamps stay together', 'cutoff_TransactionDT': cutoff,
                         'train_rows': len(train), 'test_rows': len(test), 'train_fraud': int(y_train.sum()),
                         'test_fraud': int(y_test.sum()), 'threshold': 0.5},
               'parameters': parameters, 'provenance': metadata,
-              'warning': 'Do not present these metrics as real-world performance. Telemetry is generated conditional on labels in both splits.'}
-    artifact = {'model': full_model, 'feature_cols': FEATURES, 'device_counts': {}, **report}
+              'warning': BENCHMARK_NOTICE}
+    artifact = {'model': model, 'feature_cols': FEATURES, **report}
     output = Path(model_output_path)
     output.parent.mkdir(parents=True, exist_ok=True)
     backup(output)
+    backup(output.with_suffix('.metrics.json'))
     joblib.dump(artifact, output)
     output.with_suffix('.metrics.json').write_text(json.dumps(report, indent=2) + '\n', encoding='utf-8')
     print(json.dumps(report, indent=2))

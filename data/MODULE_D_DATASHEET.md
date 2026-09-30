@@ -1,5 +1,9 @@
 # Module D: learned synthetic scenario policy
 
+**Historical version-1 report.** See the current
+[interaction evaluation](../docs/MODULE_D_FUSION_EVALUATION.md) for availability,
+ablation results and the new simulation's limitations.
+
 The three inputs are actual scores from the existing trained A/B/C artifacts.
 No jointly observed, labeled transaction + URL + message incident dataset exists
 in this checkout. All 2,000 pairings and all `combined_label` values are synthetic.

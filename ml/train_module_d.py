@@ -18,7 +18,7 @@ def fit_model(X,y):
     return LogisticRegression(C=1.0,max_iter=1000,random_state=42).fit(X,y)
 
 
-def train_module_d():
+def train_legacy_module_d():
     path=ROOT/'data/raw/module_d_scenarios.csv'
     metadata=json.loads(path.with_suffix('.metadata.json').read_text())
     if hashlib.sha256(path.read_bytes()).hexdigest()!=metadata['data_sha256']: raise ValueError('Data hash mismatch')
@@ -49,6 +49,12 @@ def train_module_d():
     output.with_suffix('.metrics.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
     print(json.dumps(report,indent=2))
     return artifact
+
+
+def train_module_d():
+    """Reproduce the explicit interaction-policy simulation and all ablations."""
+    from ml.evaluate_module_d import evaluate
+    return evaluate()
 
 
 if __name__=='__main__': train_module_d()

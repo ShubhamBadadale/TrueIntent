@@ -7,8 +7,8 @@ import pytest
 from ml import predict_module_c
 
 @pytest.fixture(autouse=True)
-def keyword_fallback(monkeypatch):
-    # Preserve deterministic fallback regression coverage with a real model installed.
+def missing_model(monkeypatch):
+    # Missing artifacts must abstain, regardless of keyword hits.
     monkeypatch.setattr(predict_module_c, "_load_ml_model", lambda: None)
 
 
@@ -18,43 +18,45 @@ def _result(text: str) -> dict:
     return analyze_message(text, fetch_live_page=False)
 
 
-def test_fear_authority_signature():
-    """Fear/authority (digital-arrest style) message must be flagged."""
+def test_fear_keywords_do_not_replace_missing_model():
+    """No unvalidated keyword score is presented as an ML assessment."""
     res = _result(
         "You are under investigation for money laundering. "
         "Stay on the line and do not disconnect. "
         "This is a CBI officer issuing an arrest warrant."
     )
 
-    assert res["signature"] == "fear_authority", f"Got {res}"
+    assert res["signature"] == "none", f"Got {res}"
     assert isinstance(res["score"], float)
     assert 0.0 <= res["score"] <= 1.0
-    assert res["score"] >= 0.5, f"Expected high score for fear message, got {res}"
+    assert not res['text_assessed']
+    assert 'not assessed' in res['ml_status']
     assert isinstance(res["reasons"], list) and len(res["reasons"]) > 0
 
 
-def test_greed_opportunity_signature():
-    """Greed/opportunity (fake-trading style) message must be flagged."""
+def test_greed_keywords_do_not_replace_missing_model():
+    """Abstain even when old greed keywords match."""
     res = _result(
         "Limited time offer! Guaranteed returns — double your money "
         "with our exclusive stock tip. Join our trading group now."
     )
 
-    assert res["signature"] == "greed_opportunity", f"Got {res}"
+    assert res["signature"] == "none", f"Got {res}"
     assert isinstance(res["score"], float)
     assert 0.0 <= res["score"] <= 1.0
-    assert res["score"] >= 0.5, f"Expected high score for greed message, got {res}"
+    assert not res['text_assessed']
     assert isinstance(res["reasons"], list) and len(res["reasons"]) > 0
 
 
-def test_clean_legitimate_message():
-    """Benign message should score low with signature 'none'."""
+def test_clean_message_is_also_unassessed_without_model():
+    """Numeric compatibility placeholder is never a benign prediction."""
     res = _result("Hey, are we still meeting for lunch tomorrow? Let me know!")
 
     assert res["signature"] == "none", f"Got {res}"
     assert isinstance(res["score"], float)
     assert 0.0 <= res["score"] <= 1.0
     assert res["score"] < 0.3, f"Expected low score for clean message, got {res}"
+    assert not res['text_assessed']
 
 
 def test_embedded_url_folded_into_score():
@@ -83,7 +85,7 @@ def test_empty_message_edge_case():
 
 
 def test_ml_status_reports_placeholder_when_dataset_pending():
-    """Without Module C datasets/model, ML component must report rules-only/pending."""
+    """Without a model, text assessment is explicitly unavailable."""
     res = _result("Hello, just checking in.")
     assert "ml_status" in res
-    assert "rules_only" in res["ml_status"]
+    assert "unavailable" in res["ml_status"]

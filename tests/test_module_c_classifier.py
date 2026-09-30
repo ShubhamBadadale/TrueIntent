@@ -38,7 +38,8 @@ def test_real_model_metadata_and_inference(monkeypatch):
         pytest.skip('Generate and train Module C to run real-data integration')
     artifact=joblib.load(path)
     assert set(artifact['pipeline'].classes_) == {'fear_authority','greed_opportunity','none'}
-    assert artifact['evaluation']['per_class']['fear_authority']['support']==5
+    if artifact.get('mode') == 'intent-v2':
+        assert artifact['evaluation']['provenance']['provenance_counts']['manually_curated'] == 5
     monkeypatch.setattr(predictor,'_load_ml_model',lambda:artifact)
     result=predictor.analyze_message('Hey, are we still meeting for lunch tomorrow?',False)
     assert result['ml_status'].startswith('active')
@@ -58,8 +59,9 @@ def test_classifier_can_classify_without_keyword_hits(monkeypatch):
     assert result['score']>0.5
 
 
-def test_broken_model_uses_keyword_fallback(monkeypatch):
+def test_broken_model_does_not_masquerade_as_keyword_prediction(monkeypatch):
     monkeypatch.setattr(predictor,'_load_ml_model',lambda:{'pipeline':object()})
     result=predictor.analyze_message('You are under investigation. Stay on the line.',False)
-    assert result['signature']=='fear_authority'
-    assert result['ml_status']=='rules_only (ML inference failed)'
+    assert result['signature']=='none'
+    assert result['text_assessed'] is False
+    assert 'inference failed' in result['ml_status']

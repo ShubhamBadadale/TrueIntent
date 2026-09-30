@@ -1,10 +1,9 @@
 """
 Module C — Message/Scam Analyzer (text-analysis half).
 
-TF-IDF + Logistic Regression over real text with weak behavioral labels.
-Fear/authority coverage is only five cited reported excerpts, not a representative
-transcript corpus. See data/README.md. Keywords remain safeguards in the existing
-blend and the missing/failed-model fallback; URL folding remains active in both paths.
+Lightweight intent classifier with explicit real/curated/synthetic provenance.
+Keyword overrides are disabled; any retained rules are labeled evidence only.
+Missing models explicitly abstain from text assessment.
 
 Any URLs found in the message are extracted and passed to Module B's
 `check_url()` and folded into the final score/reasons.
@@ -13,7 +12,10 @@ Any URLs found in the message are extracted and passed to Module B's
 import os
 import re
 
-import joblib
+try:
+    from ml.model_loading import load_artifact
+except ImportError:
+    from model_loading import load_artifact
 
 try:
     from ml.predict_module_b import check_url
@@ -21,8 +23,7 @@ except ImportError:  # fallback for direct script execution
     from predict_module_b import check_url
 
 # -----------------------------------------------------------------------------
-# PLACEHOLDER keyword baselines (case-insensitive substring match).
-# Clearly marked as a substitute for the trained classifier.
+# Historical keyword candidates, retained for measured ablations only.
 # -----------------------------------------------------------------------------
 FEAR_AUTHORITY_KEYWORDS = [
     "under investigation",
@@ -70,21 +71,12 @@ def _get_model_path() -> str:
 
 
 def _load_ml_model(model_path: str = None):
-    """Load Module C ML artifact if trained, else None (rules-only mode)."""
+    """Load Module C artifact if trained, else None (text assessment unavailable)."""
     global _ML_MODEL_ARTIFACT
     if model_path is None:
         model_path = _get_model_path()
 
-    if _ML_MODEL_ARTIFACT is None or _ML_MODEL_ARTIFACT.get("_path") != model_path:
-        if os.path.exists(model_path):
-            try:
-                artifact = joblib.load(model_path)
-                artifact["_path"] = model_path
-                _ML_MODEL_ARTIFACT = artifact
-            except Exception:
-                _ML_MODEL_ARTIFACT = None
-        else:
-            _ML_MODEL_ARTIFACT = None
+    _ML_MODEL_ARTIFACT = load_artifact(model_path, _ML_MODEL_ARTIFACT)
     return _ML_MODEL_ARTIFACT
 
 
@@ -93,145 +85,73 @@ def extract_urls(text: str) -> list:
     if not text:
         return []
     pattern = r"(https?://[^\s\"'<>]+|www\.[^\s\"'<>]+)"
-    found = re.findall(pattern, text)
+    found = re.findall(pattern, text, flags=re.IGNORECASE)
     # Strip trailing punctuation that is not part of the URL.
-    return [u.rstrip(".,;:!?)'\"") for u in found]
-
-
-def _match_keywords(text_lower: str, keywords: list) -> list:
-    return [kw for kw in keywords if kw.lower() in text_lower]
-
-
-def _rule_score(num_hits: int) -> float:
-    """Explainable step function: 0 hits -> 0.0, 1 -> 0.55, 2 -> 0.75, 3+ -> 0.9."""
-    if num_hits <= 0:
-        return 0.0
-    if num_hits == 1:
-        return 0.55
-    if num_hits == 2:
-        return 0.75
-    return 0.9
+    return list(dict.fromkeys(u.rstrip(".,;:!?)'\"") for u in found))
 
 
 def analyze_message(text: str, fetch_live_page: bool = False) -> dict:
-    """
-    Analyze a message for scam intent.
-
-    Returns:
-    --------
-    dict: {
-        "score": float (0.0 safe to 1.0 scam),
-        "signature": "fear_authority" | "greed_opportunity" | "none",
-        "reasons": list[str],
-        "ml_status": str,
-    }
-    """
-    if text is None:
-        text = ""
-    if not isinstance(text, str):
-        text = str(text)
-
-    text_stripped = text.strip()
-    if not text_stripped:
-        return {
-            "score": 0.0,
-            "signature": "none",
-            "reasons": ["Empty message text provided"],
-            "ml_status": "not_run (empty text)",
-        }
-
-    text_lower = text_stripped.lower()
-
-    fear_hits = _match_keywords(text_lower, FEAR_AUTHORITY_KEYWORDS)
-    greed_hits = _match_keywords(text_lower, GREED_OPPORTUNITY_KEYWORDS)
-
-    # Signature: higher hit count wins; ties with both > 0 go to fear_authority
-    # (deterministic, documented); zero hits -> "none".
-    if len(fear_hits) == 0 and len(greed_hits) == 0:
-        rule_signature = "none"
-        rule_score = 0.0
-    elif len(fear_hits) >= len(greed_hits):
-        rule_signature = "fear_authority"
-        rule_score = _rule_score(len(fear_hits))
-    else:
-        rule_signature = "greed_opportunity"
-        rule_score = _rule_score(len(greed_hits))
-
-    reasons: list = []
-    for kw in fear_hits:
-        reasons.append(f"Matched fear/authority pattern: '{kw}'")
-    for kw in greed_hits:
-        reasons.append(f"Matched greed/opportunity pattern: '{kw}'")
-
-    # --- ML combination (if a trained artifact exists) ---
+    """Separate ML intent predictions, keyword evidence and embedded URL evidence."""
+    import numpy as np
+    from ml.features_module_c import normalize_text, INTENTS
+    text = '' if text is None else str(text).strip()
     artifact = _load_ml_model()
+    result = dict(score=0.0, signature='none', reasons=[],
+                  ml_status='not_run (empty text)' if not text else 'unavailable (text not assessed)',
+                  intent=None, intent_probabilities={}, rule_evidence=[], text_assessed=False)
+    if not text:
+        result['reasons'] = ['Empty message text provided']
+        return result
     if artifact is not None:
         try:
-            pipeline = artifact["pipeline"]
-            proba = pipeline.predict_proba([text_stripped])[0]
-            classes = list(pipeline.classes_)
-            prob_map = {str(c): float(p) for c, p in zip(classes, proba)}
-            p_none = prob_map.get("none", 0.0)
-            ml_score = round(1.0 - p_none, 4)
-            # ML signature = highest-probability non-none class (fallback: argmax).
-            scam_classes = [c for c in classes if str(c) != "none"]
-            if scam_classes:
-                ml_signature = str(max(scam_classes, key=lambda c: prob_map.get(str(c), 0.0)))
-                if prob_map.get(ml_signature, 0.0) < 0.5:
-                    ml_signature = str(classes[int(proba.argmax())])
-            else:
-                ml_signature = str(classes[int(proba.argmax())])
-            if ml_signature not in VALID_SIGNATURES:
-                ml_signature = "none"
-
-            if rule_signature != "none":
-                # Preserve the existing safeguard: fear has zero held-out recall.
-                signature = rule_signature
-                text_score = round(min(1.0, 0.50 * rule_score + 0.50 * ml_score), 4)
-            else:
-                signature = ml_signature
-                text_score = round(ml_score, 4)
-            ml_status = "active (rules + ML; fear_authority unvalidated)"
-            if ml_signature != "none":
-                reasons.append(f"Text classifier suggests '{ml_signature}' (limited training coverage)")
+            is_v2 = artifact.get('mode') == 'intent-v2'
+            model = artifact['intent_pipeline'] if is_v2 else artifact['pipeline']
+            classes = list(model.classes_)
+            expected = set(INTENTS) if is_v2 else set(VALID_SIGNATURES)
+            if set(classes) != expected:
+                raise ValueError('Unsupported intent contract')
+            probabilities = np.asarray(model.predict_proba([text])[0], dtype=float)
+            if not np.isfinite(probabilities).all() or np.any(probabilities < 0) or not np.isclose(probabilities.sum(), 1):
+                raise ValueError('Invalid probability output')
+            top = str(classes[int(probabilities.argmax())])
+            benign = 'benign' if is_v2 else 'none'
+            result['score'] = round(1 - float(probabilities[classes.index(benign)]), 4)
+            signature = str(artifact['pipeline'].predict([text])[0]) if is_v2 else top
+            result['signature'] = signature if signature in VALID_SIGNATURES else 'none'
+            if is_v2:
+                result['intent'] = top
+                result['intent_probabilities'] = dict(zip(classes, probabilities.tolist()))
+            result['text_assessed'] = True
+            result['ml_status'] = 'active (experimental intent model; limited real-language coverage)' if is_v2 else 'active (legacy three-class model)'
+            result['reasons'].append(f"ML {'intent' if is_v2 else 'signature'} prediction: '{top}' (not a verified finding of fraud)")
+            if is_v2:
+                result['reasons'].append('Expanded intent and Hindi/Hinglish coverage relies on authored examples; real-world recall is unvalidated.')
+            for rule in artifact.get('evidence_rules', []):
+                if rule['phrase'] in normalize_text(text):
+                    result['rule_evidence'].append(dict(source='keyword_rule', phrase=rule['phrase'],
+                                                       intent=rule['intent'], affects_score=False))
+                    result['reasons'].append(f"Rule evidence only: '{rule['phrase']}' (does not override ML)")
         except Exception:
-            signature = rule_signature
-            text_score = round(rule_score, 4)
-            ml_status = "rules_only (ML inference failed)"
-    else:
-        signature = rule_signature
-        text_score = round(rule_score, 4)
-        ml_status = "rules_only (model unavailable; keyword baseline)"
-
-    # --- URL folding via Module B ---
-    urls = extract_urls(text_stripped)
-    url_max = 0.0
-    for url in urls:
+            result.update(score=0.0, signature='none', intent=None, intent_probabilities={}, text_assessed=False,
+                          ml_status='unavailable (ML inference failed; text not assessed)')
+    if not result['text_assessed']:
+        result['reasons'].append('Text could not be assessed. A zero text score does not mean this message is safe.')
+    result['text_score'] = result['score'] if result['text_assessed'] else None
+    result['embedded_url_score'] = 0.0
+    for url in extract_urls(text):
         try:
-            url_res = check_url(url, fetch_live_page=fetch_live_page)
+            url_result = check_url(url, fetch_live_page=fetch_live_page)
+            score = float(url_result['score'])
+            if not np.isfinite(score) or not 0 <= score <= 1:
+                continue
+            result['score'] = round(max(result['score'], score), 4)
+            result['embedded_url_score'] = max(result['embedded_url_score'], score)
+            if score >= .4:
+                result['reasons'].append(f"Embedded URL '{url}' flagged by Module B (score {score:.2f})")
+                result['reasons'].extend(f'URL evidence: {reason}' for reason in url_result.get('reasons', []))
         except Exception:
             continue
-        try:
-            u_score = float(url_res.get("score", 0.0))
-        except (TypeError, ValueError):
-            u_score = 0.0
-        url_max = max(url_max, u_score)
-        u_reasons = url_res.get("reasons", []) or []
-        if u_score >= 0.4:
-            reasons.append(f"Embedded URL '{url}' flagged by Module B (score {u_score:.2f})")
-            for r in u_reasons:
-                reasons.append(f"  URL evidence: {r}")
-        elif u_reasons:
-            reasons.append(f"Embedded URL '{url}' checked (score {u_score:.2f})")
-
-    final_score = round(min(1.0, max(text_score, url_max)), 4)
-
-    return {
-        "score": final_score,
-        "signature": signature,
-        "reasons": reasons,
-        "ml_status": ml_status,
-    }
+    return result
 
 
 if __name__ == "__main__":

@@ -31,16 +31,26 @@ class CallTelemetry(BaseModel):
 
 
 class TransactionCheckRequest(BaseModel):
-    amount: float = Field(..., gt=0, description="Transaction value (> 0)")
-    timestamp: Optional[str] = Field(
-        default=None, description="ISO 8601 timestamp, e.g. 2026-09-12T20:54:00Z"
+    amount: float = Field(..., ge=0, allow_inf_nan=False, description="Nonnegative benchmark amount")
+    amount_unit: Literal['INR', 'ieee_cis_source'] = Field(
+        default='INR', description='INR is unsupported; source-unit benchmark use must be explicit'
     )
-    device_id: str = Field(..., min_length=1, description="Non-empty device identifier")
-    is_active_call: bool = Field(default=False, description="Active call during transfer")
+    timestamp: Optional[str] = Field(
+        default=None, description="Legacy ISO 8601 metadata; not used as a clock feature"
+    )
+    device_id: Optional[str] = Field(default=None, min_length=1, description="Legacy metadata; not a model feature")
+    is_active_call: bool = Field(default=False, description="Legacy reported call state; not a model feature")
     call_telemetry: Optional[CallTelemetry] = None
     transaction_velocity: int = Field(
-        default=1, ge=0, description="Transactions from device in last hour (>= 0)"
+        default=1, ge=0, description="Legacy metadata; excluded from the amount-only model"
     )
+
+    @field_validator('amount', mode='before')
+    @classmethod
+    def _amount_not_boolean(cls, value):
+        if isinstance(value, bool):
+            raise ValueError('amount must be numeric, not boolean')
+        return value
 
     @model_validator(mode="after")
     def matching_device(self):
@@ -56,8 +66,8 @@ class TransactionCheckRequest(BaseModel):
 
     @field_validator("device_id")
     @classmethod
-    def _device_id_not_blank(cls, v: str) -> str:
-        if not v.strip():
+    def _device_id_not_blank(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and not v.strip():
             raise ValueError("device_id must be a non-empty string.")
         return v
 
@@ -80,13 +90,15 @@ class TransactionCheckRequest(BaseModel):
 
 class TransactionCheckResponse(BaseModel):
     score: float = Field(..., ge=0.0, le=1.0)
+    analysis_scope: Literal['ieee_cis_amount_only_benchmark'] = 'ieee_cis_amount_only_benchmark'
+    explanation: str
 
 
 # -----------------------------------------------------------------------------
 # Module B — URL safety (schema.md section 2)
 # -----------------------------------------------------------------------------
 class UrlCheckRequest(BaseModel):
-    url: str = Field(..., min_length=1, description="URL to evaluate")
+    url: str = Field(..., min_length=1, max_length=8192, description="URL to evaluate")
 
     @field_validator("url")
     @classmethod
@@ -115,15 +127,20 @@ class MessageCheckResponse(BaseModel):
     ml_status: str = ""
     ocr_text: Optional[str] = None
     ocr_status: Optional[str] = None
+    intent: Optional[str] = None
+    intent_probabilities: dict[str, float] = Field(default_factory=dict)
+    rule_evidence: list[dict] = Field(default_factory=list)
+    text_assessed: bool = False
 
 
 # -----------------------------------------------------------------------------
 # Module D — Combined (any subset of the above)
 # -----------------------------------------------------------------------------
 class CombinedRequest(BaseModel):
+    active_call: Optional[bool] = Field(default=None, strict=True, description='User-reported status; omitted means unknown')
     transaction: Optional[TransactionCheckRequest] = None
-    url: Optional[str] = None
-    text: Optional[str] = None
+    url: Optional[str] = Field(default=None, max_length=8192)
+    text: Optional[str] = Field(default=None, max_length=20000)
 
     @model_validator(mode="after")
     def _at_least_one_input(self):

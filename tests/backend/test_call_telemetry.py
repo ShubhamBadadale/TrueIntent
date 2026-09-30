@@ -19,12 +19,20 @@ def test_telemetry_overrides_manual_and_preserves_contract():
     assert TransactionCheckRequest(amount=500, device_id='manual').to_module_a_payload()['is_active_call'] is False
 
 
-@pytest.mark.parametrize('route', ['/check-transaction', '/check-combined'])
-def test_phone_and_manual_paths_score_identically(route):
+def test_phone_and_manual_paths_are_not_interpreted_as_benchmark_units():
     phone = payload()
     manual = dict(amount=500, device_id='phone-demo', is_active_call=True)
-    def post(body): return client.post(route,json={'transaction':body} if route.endswith('combined') else body)
+    def post(body): return client.post('/check-transaction', json=body)
     real = post(phone); demo = post(manual)
+    assert real.status_code == demo.status_code == 422
+    assert 'INR' in real.json()['detail']
+
+
+def test_call_report_does_not_change_benchmark_score(benchmark_model):
+    phone = dict(payload(), amount_unit='ieee_cis_source')
+    manual = dict(amount=500, amount_unit='ieee_cis_source')
+    real = client.post('/check-transaction', json=phone)
+    demo = client.post('/check-transaction', json=manual)
     assert real.status_code == demo.status_code == 200
     assert real.json()['score'] == demo.json()['score']
 

@@ -2,15 +2,17 @@ import { useState } from 'react'
 import LinkCheck from './components/LinkCheck.jsx'
 import MessageCheck from './components/MessageCheck.jsx'
 import TransactionCheck from './components/TransactionCheck.jsx'
+import CombinedCheck from './components/CombinedCheck.jsx'
 
 const TABS = [
+  { id: 'combined', label: 'Combined Fraud Analysis', hint: 'Bring your evidence together' },
   { id: 'link', label: 'Check a Link', hint: 'A website or login link' },
   { id: 'message', label: 'Check a Message / Screenshot', hint: 'A chat, SMS, or photo of one' },
-  { id: 'transaction', label: 'Check a Transaction Scenario', hint: 'A money-transfer situation' },
+  { id: 'transaction', label: 'Transaction Benchmark', hint: 'IEEE-CIS source amounts only' },
 ]
 
 export default function App() {
-  const [tab, setTab] = useState('link')
+  const [tab, setTab] = useState('combined')
 
   return (
     <div className="min-h-screen bg-[#faf8f3] text-slate-900">
@@ -21,14 +23,14 @@ export default function App() {
             Pause together. Check before you send.
           </p>
           <p className="mx-auto mt-3 max-w-2xl text-lg leading-relaxed text-slate-600">
-            If someone is rushing you to pay or share a code, you can check the link, the message,
-            or the situation here first. There is no hurry — we explain everything in plain words.
+            Bring together a message, screenshot and suspicious link to understand the warning
+            signs before you act. You can also describe the transaction and call for context.
           </p>
         </div>
       </header>
 
       <main className="mx-auto max-w-3xl px-5 pb-16">
-        <nav aria-label="What to check" className="mt-6 grid gap-2 sm:grid-cols-3">
+        <nav aria-label="What to check" className="mt-6 grid gap-2 sm:grid-cols-2">
           {TABS.map((t) => {
             const active = tab === t.id
             return (
@@ -53,6 +55,7 @@ export default function App() {
         </nav>
 
         <div className="mt-6 rounded-3xl border border-stone-200 bg-white p-6 shadow-sm sm:p-8">
+          {tab === 'combined' && <CombinedCheck />}
           {tab === 'link' && <LinkCheck />}
           {tab === 'message' && <MessageCheck />}
           {tab === 'transaction' && <TransactionCheck />}

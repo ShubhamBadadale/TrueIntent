@@ -24,20 +24,26 @@ function humanizeDetail(detail, fallback) {
 
 async function request(path, { method = 'GET', json, form } = {}) {
   let res
+  let data = null
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), 90000)
   try {
     res = await fetch(`${API_BASE}${path}`, {
       method,
+      signal: controller.signal,
       ...(json ? { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(json) } : {}),
       ...(form ? { body: form } : {}),
     })
+    try {
+      data = await res.json()
+    } catch (error) {
+      if (controller.signal.aborted) throw error
+    }
   } catch {
+    if (controller.signal.aborted) throw new Error('Analysis took too long. Please try again or paste the screenshot text.')
     throw new Error(SERVER_UNREACHABLE)
-  }
-  let data = null
-  try {
-    data = await res.json()
-  } catch {
-    data = null
+  } finally {
+    clearTimeout(timer)
   }
   if (!res.ok) {
     const statusHint =
@@ -48,7 +54,12 @@ async function request(path, { method = 'GET', json, form } = {}) {
       humanizeDetail(data && data.detail, `The server returned an error (${res.status}).`) + statusHint,
     )
   }
+  if (!data || typeof data !== 'object') throw new Error('The server returned an unreadable response. Please retry.')
   return data
+}
+
+export function checkCombined(payload) {
+  return request('/check-combined', { method: 'POST', json: payload })
 }
 
 export function checkUrl(url) {
@@ -56,30 +67,31 @@ export function checkUrl(url) {
 }
 
 export function checkMessageText(text) {
+  if (text.length > 20000) throw new Error('Message exceeds the 20,000 character limit.')
   const form = new FormData()
   form.append('text', text)
   return request('/check-message', { method: 'POST', form })
 }
 
 export function checkMessageImage(file) {
+  if (!file || !['image/png', 'image/jpeg', 'image/webp', 'image/bmp'].includes(file.type)) throw new Error('Upload a PNG, JPEG, WebP or BMP screenshot.')
+  if (!file.size || file.size > 10 * 1024 * 1024) throw new Error('Screenshot must be nonempty and at most 10 MB.')
   const form = new FormData()
   form.append('image', file)
   return request('/check-message', { method: 'POST', form })
 }
 
-export function checkTransaction({ amount, timestamp, deviceId, isActiveCall, velocity }) {
+export function checkTransaction({ amount, amountUnit = 'INR' }) {
   const payload = {
     amount: Number(amount),
-    device_id: deviceId,
-    is_active_call: Boolean(isActiveCall),
-    transaction_velocity: Number(velocity),
+    amount_unit: amountUnit,
   }
-  if (timestamp) payload.timestamp = timestamp
   return request('/check-transaction', { method: 'POST', json: payload })
 }
 
 /** Same cutoffs as the backend (Module D) so single-module scores get a tier. */
 export function tierForScore(score) {
+  if (typeof score !== 'number' || !Number.isFinite(score) || score < 0 || score > 1) return null
   if (score < 0.25) return 'Low'
   if (score < 0.5) return 'Medium'
   if (score < 0.75) return 'High'

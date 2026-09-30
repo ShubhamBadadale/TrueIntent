@@ -1,15 +1,15 @@
-import re
 import os
+import math
 import urllib.parse
 from difflib import SequenceMatcher
-import joblib
-
-# Optional requests import for live page fetching
 try:
-    import requests
-    REQUESTS_AVAILABLE = True
+    from ml.model_loading import load_artifact
 except ImportError:
-    REQUESTS_AVAILABLE = False
+    from model_loading import load_artifact
+try:
+    from ml.features_module_b import clean_url, parse_url, hostname as parsed_hostname, is_ip as parsed_is_ip
+except ModuleNotFoundError:
+    from features_module_b import clean_url, parse_url, hostname as parsed_hostname, is_ip as parsed_is_ip
 
 # -----------------------------------------------------------------------------
 # NAMED RULE WEIGHT CONSTANTS
@@ -55,23 +55,13 @@ def _load_ml_model(model_path: str = None):
     if model_path is None:
         model_path = _get_model_path()
     
-    if _ML_MODEL_ARTIFACT is None or _ML_MODEL_ARTIFACT.get("_path") != model_path:
-        if os.path.exists(model_path):
-            try:
-                artifact = joblib.load(model_path)
-                artifact["_path"] = model_path
-                _ML_MODEL_ARTIFACT = artifact
-            except Exception:
-                _ML_MODEL_ARTIFACT = None
-        else:
-            _ML_MODEL_ARTIFACT = None
+    _ML_MODEL_ARTIFACT = load_artifact(model_path, _ML_MODEL_ARTIFACT)
     return _ML_MODEL_ARTIFACT
 
 
 def is_ip_address(hostname: str) -> bool:
-    """Checks if host is an IPv4 address."""
-    ipv4_pattern = r"^(\d{1,3}\.){3}\d{1,3}$"
-    return bool(re.match(ipv4_pattern, hostname))
+    """Recognize valid IPv4 and IPv6 literals with the shared parser."""
+    return parsed_is_ip(hostname)
 
 
 def check_typosquatting(hostname: str) -> tuple[bool, str]:
@@ -79,13 +69,13 @@ def check_typosquatting(hostname: str) -> tuple[bool, str]:
     Checks if hostname attempts brand typosquatting or similarity spoofing.
     Returns (is_typosquatted, matched_brand)
     """
-    clean_host = hostname.lower().replace("www.", "")
+    clean_host = hostname.lower().removeprefix("www.")
     domain_parts = clean_host.split(".")
     main_domain = domain_parts[0] if domain_parts else clean_host
 
     for brand, canonical_domains in CANONICAL_BRAND_DOMAINS.items():
         # Canonical domain check (e.g. hdfcbank.com is legitimate)
-        if clean_host in canonical_domains:
+        if any(clean_host == domain or clean_host.endswith("." + domain) for domain in canonical_domains):
             continue
 
         # 1. Brand name embedded in suspicious domain (e.g., hdfcbank-login.com or paytm-verify.net)
@@ -102,43 +92,11 @@ def check_typosquatting(hostname: str) -> tuple[bool, str]:
 
 
 def inspect_live_page(url: str, timeout: float = 2.0) -> tuple[bool, str, list[str]]:
-    """
-    Option (a): Lightweight page-fetch step.
-    Follows redirects (up to 2.0 sec timeout) and checks destination HTML for login forms.
-    Returns (has_login_form, final_url, page_reasons)
-    """
-    if not REQUESTS_AVAILABLE:
-        return False, url, []
-
-    reasons = []
-    has_login_form = False
-    try:
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) TrueIntent/1.0 URLChecker"
-        }
-        response = requests.get(url, timeout=timeout, allow_redirects=True, headers=headers)
-        final_url = response.url
-
-        # Check redirect domain shift
-        orig_parsed = urllib.parse.urlparse(url)
-        final_parsed = urllib.parse.urlparse(final_url)
-        if orig_parsed.netloc and final_parsed.netloc and orig_parsed.netloc != final_parsed.netloc:
-            reasons.append(f"Redirect chain detected: redirected from {orig_parsed.netloc} to {final_parsed.netloc}")
-
-        # HTML Login Form detection
-        if response.status_code == 200:
-            content_lower = response.text.lower()
-            if "<form" in content_lower and ("type=\"password\"" in content_lower or "type='password'" in content_lower or "name=\"password\"" in content_lower or "login" in content_lower):
-                has_login_form = True
-                reasons.append("Destination page contains a login / credential entry form")
-    except Exception:
-        # Gracefully handle timeouts or connection failures without breaking inference
-        pass
-
-    return has_login_form, url, reasons
+    """Compatibility stub: user-supplied destinations are never fetched."""
+    return False, url, ["Live page fetching is disabled; only offline URL checks ran."]
 
 
-def check_url(url: str, fetch_live_page: bool = True) -> dict:
+def check_url(url: str, fetch_live_page: bool = False) -> dict:
     """
     Evaluates URL safety score (0.0 to 1.0) and generates human-readable risk explanations.
 
@@ -150,18 +108,10 @@ def check_url(url: str, fetch_live_page: bool = True) -> dict:
         "ml_status": str
     }
     """
-    url = url.strip()
-    if not url.startswith(("http://", "https://")):
-        # Default to http:// for parsing if scheme missing
-        parsed_url = urllib.parse.urlparse("http://" + url)
-        has_explicit_scheme = False
-        is_https = False
-    else:
-        parsed_url = urllib.parse.urlparse(url)
-        has_explicit_scheme = True
-        is_https = (parsed_url.scheme.lower() == "https")
-
-    hostname = parsed_url.netloc.split(":")[0] if parsed_url.netloc else parsed_url.path.split("/")[0]
+    url = clean_url(url)
+    parsed_url = parse_url(url)
+    hostname = parsed_hostname(url)
+    is_https = parsed_url.scheme.lower() == "https"
 
     reasons = []
     rule_score_sum = 0.0
@@ -172,7 +122,7 @@ def check_url(url: str, fetch_live_page: bool = True) -> dict:
         reasons.append("Insecure protocol: URL does not use encrypted HTTPS connection")
 
     # 2. IP Address Host check
-    if is_ip_address(hostname):
+    if parsed_is_ip(hostname):
         rule_score_sum += WEIGHT_IP_ADDRESS
         reasons.append(f"Host is a raw IP address ({hostname}) rather than a registered domain name")
 
@@ -225,6 +175,8 @@ def check_url(url: str, fetch_live_page: bool = True) -> dict:
             pipeline = artifact["pipeline"]
             phishing_index = list(pipeline.classes_).index(1)
             ml_proba = float(pipeline.predict_proba([url])[0, phishing_index])
+            if not math.isfinite(ml_proba) or not 0 <= ml_proba <= 1:
+                raise ValueError("Invalid model output")
             final_score = round(min(1.0, 0.50 * rule_score + 0.50 * ml_proba), 4)
             ml_status = "active"
         except Exception:

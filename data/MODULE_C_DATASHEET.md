@@ -1,5 +1,10 @@
 # Module C data and evaluation (Phase 4)
 
+**Historical report.** The current intent experiment and source exclusion are
+documented in [MODULE_C_INTENT_EVALUATION.md](../docs/MODULE_C_INTENT_EVALUATION.md).
+The figures and keyword fallback described below refer to the older artifact;
+they do not describe the current ten-intent classifier.
+
 **Fear/authority recognition is not validated: out-of-fold recall is 0/5.**
 This phase activates a text classifier, but does not establish a successful learned
 replacement for fear/authority detection. Existing keyword safeguards are retained.

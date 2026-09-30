@@ -1,29 +1,248 @@
 {
+  "model_type": "tfidf",
   "metrics": {
-    "precision": 0.9173333333333333,
-    "recall": 0.9028871391076115,
-    "f1": 0.91005291005291,
-    "fpr": 0.08136482939632546,
+    "precision": 0.8624296057924377,
+    "recall": 0.9281385281385282,
+    "f1": 0.8940783986655546,
+    "roc_auc": 0.9617946643898201,
+    "pr_auc": 0.9643634267273319,
+    "latency_ms_per_url": 0.16389255733431474,
+    "batch_latency_ms": 378.75569999960135,
     "confusion_matrix": [
       [
-        1050,
-        93
+        985,
+        171
       ],
       [
-        111,
-        1032
+        83,
+        1072
       ]
-    ]
+    ],
+    "fpr": 0.14792387543252594,
+    "single_url_latency_ms_median": 1.5956500010361196,
+    "single_url_latency_ms_p95": 2.842099998815683
   },
   "evaluation": {
-    "split": "stratified random URL holdout",
-    "seed": 42,
-    "test_size": 0.2,
-    "train_rows": 9141,
-    "test_rows": 2286,
-    "shared_hostnames": 452,
-    "test_rows_with_train_hostname": 805,
+    "models": {
+      "random_split": {
+        "tfidf": {
+          "precision": 0.9172597864768683,
+          "recall": 0.9020122484689413,
+          "f1": 0.9095721217468019,
+          "roc_auc": 0.9711133002512919,
+          "pr_auc": 0.9751744885331275,
+          "latency_ms_per_url": 0.24956876640446907,
+          "batch_latency_ms": 570.5142000006163,
+          "confusion_matrix": [
+            [
+              1050,
+              93
+            ],
+            [
+              112,
+              1031
+            ]
+          ],
+          "fpr": 0.08136482939632546,
+          "single_url_latency_ms_median": 1.8203999989054864,
+          "single_url_latency_ms_p95": 3.3076149982662164
+        },
+        "engineered": {
+          "precision": 0.7702991452991453,
+          "recall": 0.6307961504811899,
+          "f1": 0.6936026936026936,
+          "roc_auc": 0.7981651025030445,
+          "pr_auc": 0.8273938795637064,
+          "latency_ms_per_url": 0.10300297462819126,
+          "batch_latency_ms": 235.46480000004522,
+          "confusion_matrix": [
+            [
+              928,
+              215
+            ],
+            [
+              422,
+              721
+            ]
+          ],
+          "fpr": 0.18810148731408574,
+          "single_url_latency_ms_median": 0.439049998021801,
+          "single_url_latency_ms_p95": 1.5446749986949722
+        },
+        "combined": {
+          "precision": 0.9284420289855072,
+          "recall": 0.8967629046369204,
+          "f1": 0.9123275478415666,
+          "roc_auc": 0.9715656715264047,
+          "pr_auc": 0.9739825181716906,
+          "latency_ms_per_url": 0.27448788276515373,
+          "batch_latency_ms": 627.4793000011414,
+          "confusion_matrix": [
+            [
+              1064,
+              79
+            ],
+            [
+              118,
+              1025
+            ]
+          ],
+          "fpr": 0.06911636045494313,
+          "single_url_latency_ms_median": 3.3917500004463363,
+          "single_url_latency_ms_p95": 6.202414998369931
+        }
+      },
+      "registered_domain_disjoint_split": {
+        "tfidf": {
+          "precision": 0.8624296057924377,
+          "recall": 0.9281385281385282,
+          "f1": 0.8940783986655546,
+          "roc_auc": 0.9617946643898201,
+          "pr_auc": 0.9643634267273319,
+          "latency_ms_per_url": 0.16389255733431474,
+          "batch_latency_ms": 378.75569999960135,
+          "confusion_matrix": [
+            [
+              985,
+              171
+            ],
+            [
+              83,
+              1072
+            ]
+          ],
+          "fpr": 0.14792387543252594,
+          "single_url_latency_ms_median": 1.5956500010361196,
+          "single_url_latency_ms_p95": 2.842099998815683
+        },
+        "engineered": {
+          "precision": 0.7883698760724499,
+          "recall": 0.716017316017316,
+          "f1": 0.7504537205081669,
+          "roc_auc": 0.8424796656630567,
+          "pr_auc": 0.8759247907888422,
+          "latency_ms_per_url": 0.23332998701920082,
+          "batch_latency_ms": 539.2256000013731,
+          "confusion_matrix": [
+            [
+              934,
+              222
+            ],
+            [
+              328,
+              827
+            ]
+          ],
+          "fpr": 0.19204152249134948,
+          "single_url_latency_ms_median": 1.2240500000189058,
+          "single_url_latency_ms_p95": 2.016119999825605
+        },
+        "combined": {
+          "precision": 0.8773978315262719,
+          "recall": 0.9108225108225109,
+          "f1": 0.8937977909940527,
+          "roc_auc": 0.9624028220914034,
+          "pr_auc": 0.9660685094894156,
+          "latency_ms_per_url": 0.39929943747344143,
+          "batch_latency_ms": 922.7810000011232,
+          "confusion_matrix": [
+            [
+              1009,
+              147
+            ],
+            [
+              103,
+              1052
+            ]
+          ],
+          "fpr": 0.12716262975778547,
+          "single_url_latency_ms_median": 2.022650000071735,
+          "single_url_latency_ms_p95": 5.446670001037999
+        }
+      }
+    },
+    "model_selection": {
+      "method": "mean F1 on 5-fold StratifiedGroupKFold over registered domains within outer domain-training partition",
+      "validation_f1_mean": {
+        "tfidf": 0.8850192356111528,
+        "engineered": 0.6741352523709475,
+        "combined": 0.8936251557756881
+      },
+      "validation_f1_folds": {
+        "tfidf": [
+          0.8864569083447332,
+          0.8846549948506695,
+          0.8878107944208611,
+          0.9123837493881547,
+          0.8537897310513447
+        ],
+        "engineered": [
+          0.6661807580174927,
+          0.7100456621004566,
+          0.6793737236215113,
+          0.7060755336617406,
+          0.609000584453536
+        ],
+        "combined": [
+          0.8813324080499653,
+          0.904688304997424,
+          0.9077669902912622,
+          0.926829268292683,
+          0.8475088072471062
+        ]
+      },
+      "minimum_f1_gain_to_replace_baseline": 0.01,
+      "policy_note": "Conservative engineering policy, not a statistical significance test or preregistered experiment.",
+      "selected": "tfidf"
+    },
+    "splits": {
+      "random": {
+        "seed": 42,
+        "test_size": 0.2
+      },
+      "registered_domain_disjoint": {
+        "method": "GroupShuffleSplit; selected near 20% with prevalence near full data",
+        "seed": 42,
+        "test_size_target": 0.2
+      }
+    },
+    "dataset_audit": {
+      "rows_after_casefold_exact_dedup": 11427,
+      "casefold_duplicate_urls_present_in_training_csv": 0,
+      "rows_in_within_hostname_near_duplicate_groups": 988,
+      "near_duplicate_definition": "same hostname, decoded/lowercased digit-collapsed path, same sorted query keys; conservative template heuristic",
+      "source_duplicates_removed_by_ingestion": 3
+    },
+    "random_split": {
+      "train_rows": 9141,
+      "test_rows": 2286,
+      "shared_hostnames": 452,
+      "test_rows_with_train_hostname": 805,
+      "shared_registered_domains": 488,
+      "test_rows_with_train_registered_domain": 1133,
+      "shared_near_duplicate_templates": 142,
+      "test_rows_with_train_near_duplicate_template": 179
+    },
+    "registered_domain_disjoint_split": {
+      "train_rows": 9116,
+      "test_rows": 2311,
+      "shared_hostnames": 0,
+      "test_rows_with_train_hostname": 0,
+      "shared_registered_domains": 0,
+      "test_rows_with_train_registered_domain": 0,
+      "shared_near_duplicate_templates": 0,
+      "test_rows_with_train_near_duplicate_template": 0
+    },
     "data_sha256": "588f85c75146706a255e8001738b75323443cd062a3c19896df24a999428374f",
-    "scope": "Classifier only; not the 50/50 rules blend or current real-world performance."
-  }
+    "threshold": 0.5,
+    "pr_auc_definition": "average precision (not trapezoidal PR integration)",
+    "latency_method": "Loaded classifier including preprocessing, no URL feature cache or network; batch ms/rows plus first 200 heldout URLs scored individually; excludes API and rules.",
+    "environment": {
+      "python": "3.11.9",
+      "platform": "Windows-10-10.0.26200-SP0"
+    },
+    "final_artifact_fit": "All validated rows, after model-family selection; reported holdout metrics refer to separate evaluation fits, not this full-data refit.",
+    "scope": "Classifier only, not the existing 50/50 rule blend. Offline dataset labels are a May 2020 snapshot and do not represent current live URLs."
+  },
+  "preprocessing_version": 2
 }

@@ -1,233 +1,4484 @@
 {
-  "sklearn_version": "1.7.2",
-  "per_class": {
-    "fear_authority": {
-      "precision": 0.0,
-      "recall": 0.0,
-      "f1-score": 0.0,
-      "support": 5.0
+  "provenance": {
+    "legacy_data_sha256": "f27894e7b48e1eb0cafee2fb9a7ea437940e91a7314027876dabdd2ec6d67511",
+    "source_hashes": {
+      "module_c_sms.zip": "1587ea43e58e82b14ff1f5425c88e17f8496bfcdb67a583dbff9eefaf9963ce3",
+      "module_c_fear_sources.json": "c7b4c525b004ed7d44d6dd299443e8bdf9ef1b576e4b13fe1c72ac4398a0aec7"
     },
-    "greed_opportunity": {
-      "precision": 0.9984116899618806,
-      "recall": 0.9852664576802508,
-      "f1-score": 0.991795519091196,
-      "support": 3190.0
+    "emails_included": false,
+    "seed_sha256": "ffbc256d1dc3b3899b93364fcfa16cd6e49bc0aa8cab6eb9d5ea7e13f519909b",
+    "provenance_counts": {
+      "real_public": 4602,
+      "augmented": 63,
+      "synthetic": 54,
+      "manually_curated": 5
     },
-    "none": {
-      "precision": 0.9885664028144239,
-      "recall": 0.9988891357476116,
-      "f1-score": 0.9937009614322024,
-      "support": 4501.0
+    "origin_counts": {
+      "public": 4607,
+      "synthetic": 117
     },
-    "accuracy": 0.9925935550935551,
-    "macro avg": {
-      "precision": 0.6623260309254348,
-      "recall": 0.6613851978092874,
-      "f1-score": 0.6618321601744661,
-      "support": 7696.0
+    "language_counts": {
+      "source_english_dominant": 4602,
+      "en": 59,
+      "hinglish": 54,
+      "hi": 9
     },
-    "weighted avg": {
-      "precision": 0.9920050246941425,
-      "recall": 0.9925935550935551,
-      "f1-score": 0.9922655578621697,
-      "support": 7696.0
+    "label_counts": {
+      "benign": 4514,
+      "other_fraud": 101,
+      "authority_fear": 18,
+      "urgency_pressure": 13,
+      "digital_arrest": 13,
+      "investment_scam": 13,
+      "kyc_upi_scam": 13,
+      "impersonation": 13,
+      "courier_customs_scam": 13,
+      "credential_theft": 13
+    },
+    "independent_groups": 4613,
+    "near_duplicate_edges": 60,
+    "grouping": "Connected components: explicit seed lineage, normalized number/contact templates, word-TFIDF cosine >=0.90; approximate, not exhaustive semantic similarity"
+  },
+  "comparisons": {
+    "baseline": {
+      "all": {
+        "binary_scam": {
+          "precision": 0.718978102189781,
+          "recall": 0.9380952380952381,
+          "f1": 0.8140495867768595
+        },
+        "macro_f1": 0.32045038749969534,
+        "supported_label_macro_f1": 0.32045038749969534,
+        "per_class": {
+          "benign": {
+            "precision": 0.9855674611852175,
+            "recall": 0.9984492689410722,
+            "f1-score": 0.9919665456146143,
+            "support": 4514.0
+          },
+          "urgency_pressure": {
+            "precision": 0.18181818181818182,
+            "recall": 0.15384615384615385,
+            "f1-score": 0.16666666666666666,
+            "support": 13.0
+          },
+          "authority_fear": {
+            "precision": 0.125,
+            "recall": 0.05555555555555555,
+            "f1-score": 0.07692307692307693,
+            "support": 18.0
+          },
+          "digital_arrest": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 13.0
+          },
+          "investment_scam": {
+            "precision": 0.3333333333333333,
+            "recall": 0.07692307692307693,
+            "f1-score": 0.125,
+            "support": 13.0
+          },
+          "kyc_upi_scam": {
+            "precision": 0.6363636363636364,
+            "recall": 0.5384615384615384,
+            "f1-score": 0.5833333333333334,
+            "support": 13.0
+          },
+          "impersonation": {
+            "precision": 0.2,
+            "recall": 0.15384615384615385,
+            "f1-score": 0.17391304347826086,
+            "support": 13.0
+          },
+          "courier_customs_scam": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 13.0
+          },
+          "credential_theft": {
+            "precision": 0.5,
+            "recall": 0.07692307692307693,
+            "f1-score": 0.13333333333333333,
+            "support": 13.0
+          },
+          "other_fraud": {
+            "precision": 1.0,
+            "recall": 0.9108910891089109,
+            "f1-score": 0.9533678756476683,
+            "support": 101.0
+          },
+          "accuracy": 0.9765029635901779,
+          "macro avg": {
+            "precision": 0.39620826127003694,
+            "recall": 0.2964895913605539,
+            "f1-score": 0.32045038749969534,
+            "support": 4724.0
+          },
+          "weighted avg": {
+            "precision": 0.9687068621422034,
+            "recall": 0.9765029635901779,
+            "f1-score": 0.971799525958499,
+            "support": 4724.0
+          }
+        },
+        "confusion_matrix": [
+          [
+            4507,
+            1,
+            0,
+            0,
+            1,
+            3,
+            1,
+            1,
+            0,
+            0
+          ],
+          [
+            8,
+            2,
+            0,
+            2,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            10,
+            0,
+            1,
+            1,
+            0,
+            0,
+            1,
+            5,
+            0,
+            0
+          ],
+          [
+            5,
+            2,
+            3,
+            0,
+            0,
+            0,
+            1,
+            1,
+            1,
+            0
+          ],
+          [
+            8,
+            1,
+            0,
+            0,
+            1,
+            0,
+            2,
+            1,
+            0,
+            0
+          ],
+          [
+            6,
+            0,
+            0,
+            0,
+            0,
+            7,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            6,
+            3,
+            1,
+            1,
+            0,
+            0,
+            2,
+            0,
+            0,
+            0
+          ],
+          [
+            6,
+            0,
+            3,
+            1,
+            1,
+            0,
+            2,
+            0,
+            0,
+            0
+          ],
+          [
+            8,
+            2,
+            0,
+            1,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0
+          ],
+          [
+            9,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            92
+          ]
+        ],
+        "label_order": [
+          "benign",
+          "urgency_pressure",
+          "authority_fear",
+          "digital_arrest",
+          "investment_scam",
+          "kyc_upi_scam",
+          "impersonation",
+          "courier_customs_scam",
+          "credential_theft",
+          "other_fraud"
+        ],
+        "rows": 4724
+      },
+      "public_only": {
+        "binary_scam": {
+          "precision": 0.5975609756097561,
+          "recall": 0.9245283018867925,
+          "f1": 0.725925925925926
+        },
+        "macro_f1": 0.22850369462493916,
+        "supported_label_macro_f1": 0.7616789820831306,
+        "per_class": {
+          "benign": {
+            "precision": 0.9971187943262412,
+            "recall": 0.9995556542990447,
+            "f1-score": 0.9983357372683901,
+            "support": 4501.0
+          },
+          "urgency_pressure": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 0.0
+          },
+          "authority_fear": {
+            "precision": 1.0,
+            "recall": 0.2,
+            "f1-score": 0.3333333333333333,
+            "support": 5.0
+          },
+          "digital_arrest": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 0.0
+          },
+          "investment_scam": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 0.0
+          },
+          "kyc_upi_scam": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 0.0
+          },
+          "impersonation": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 0.0
+          },
+          "courier_customs_scam": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 0.0
+          },
+          "credential_theft": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 0.0
+          },
+          "other_fraud": {
+            "precision": 1.0,
+            "recall": 0.9108910891089109,
+            "f1-score": 0.9533678756476683,
+            "support": 101.0
+          },
+          "accuracy": 0.9967440850879097,
+          "macro avg": {
+            "precision": 0.2997118794326241,
+            "recall": 0.21104467434079557,
+            "f1-score": 0.22850369462493916,
+            "support": 4607.0
+          },
+          "weighted avg": {
+            "precision": 0.997185086447235,
+            "recall": 0.9967440850879097,
+            "f1-score": 0.9966281692103549,
+            "support": 4607.0
+          }
+        },
+        "confusion_matrix": [
+          [
+            4499,
+            1,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            4,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            9,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            92
+          ]
+        ],
+        "label_order": [
+          "benign",
+          "urgency_pressure",
+          "authority_fear",
+          "digital_arrest",
+          "investment_scam",
+          "kyc_upi_scam",
+          "impersonation",
+          "courier_customs_scam",
+          "credential_theft",
+          "other_fraud"
+        ],
+        "rows": 4607
+      },
+      "authored_only": {
+        "binary_scam": {
+          "precision": 0.9,
+          "recall": 0.9519230769230769,
+          "f1": 0.9252336448598131
+        },
+        "macro_f1": 0.14136141081793255,
+        "supported_label_macro_f1": 0.15706823424214728,
+        "per_class": {
+          "benign": {
+            "precision": 0.13114754098360656,
+            "recall": 0.6153846153846154,
+            "f1-score": 0.21621621621621623,
+            "support": 13.0
+          },
+          "urgency_pressure": {
+            "precision": 0.2,
+            "recall": 0.15384615384615385,
+            "f1-score": 0.17391304347826086,
+            "support": 13.0
+          },
+          "authority_fear": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 13.0
+          },
+          "digital_arrest": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 13.0
+          },
+          "investment_scam": {
+            "precision": 0.3333333333333333,
+            "recall": 0.07692307692307693,
+            "f1-score": 0.125,
+            "support": 13.0
+          },
+          "kyc_upi_scam": {
+            "precision": 0.6363636363636364,
+            "recall": 0.5384615384615384,
+            "f1-score": 0.5833333333333334,
+            "support": 13.0
+          },
+          "impersonation": {
+            "precision": 0.2222222222222222,
+            "recall": 0.15384615384615385,
+            "f1-score": 0.18181818181818182,
+            "support": 13.0
+          },
+          "courier_customs_scam": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 13.0
+          },
+          "credential_theft": {
+            "precision": 0.5,
+            "recall": 0.07692307692307693,
+            "f1-score": 0.13333333333333333,
+            "support": 13.0
+          },
+          "other_fraud": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 0.0
+          },
+          "accuracy": 0.1794871794871795,
+          "macro avg": {
+            "precision": 0.20230667329027985,
+            "recall": 0.16153846153846155,
+            "f1-score": 0.14136141081793255,
+            "support": 117.0
+          },
+          "weighted avg": {
+            "precision": 0.2247851925447554,
+            "recall": 0.1794871794871795,
+            "f1-score": 0.1570682342421473,
+            "support": 117.0
+          }
+        },
+        "confusion_matrix": [
+          [
+            8,
+            0,
+            0,
+            0,
+            1,
+            3,
+            0,
+            1,
+            0,
+            0
+          ],
+          [
+            8,
+            2,
+            0,
+            2,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            6,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            5,
+            0,
+            0
+          ],
+          [
+            5,
+            2,
+            3,
+            0,
+            0,
+            0,
+            1,
+            1,
+            1,
+            0
+          ],
+          [
+            8,
+            1,
+            0,
+            0,
+            1,
+            0,
+            2,
+            1,
+            0,
+            0
+          ],
+          [
+            6,
+            0,
+            0,
+            0,
+            0,
+            7,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            6,
+            3,
+            1,
+            1,
+            0,
+            0,
+            2,
+            0,
+            0,
+            0
+          ],
+          [
+            6,
+            0,
+            3,
+            1,
+            1,
+            0,
+            2,
+            0,
+            0,
+            0
+          ],
+          [
+            8,
+            2,
+            0,
+            1,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        ],
+        "label_order": [
+          "benign",
+          "urgency_pressure",
+          "authority_fear",
+          "digital_arrest",
+          "investment_scam",
+          "kyc_upi_scam",
+          "impersonation",
+          "courier_customs_scam",
+          "credential_theft",
+          "other_fraud"
+        ],
+        "rows": 117
+      },
+      "hinglish": {
+        "binary_scam": {
+          "precision": 0.8888888888888888,
+          "recall": 1.0,
+          "f1": 0.9411764705882353
+        },
+        "macro_f1": 0.19667277167277164,
+        "supported_label_macro_f1": 0.21852530185863517,
+        "per_class": {
+          "benign": {
+            "precision": 0.2,
+            "recall": 0.3333333333333333,
+            "f1-score": 0.25,
+            "support": 6.0
+          },
+          "urgency_pressure": {
+            "precision": 0.25,
+            "recall": 0.3333333333333333,
+            "f1-score": 0.2857142857142857,
+            "support": 6.0
+          },
+          "authority_fear": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 6.0
+          },
+          "digital_arrest": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 6.0
+          },
+          "investment_scam": {
+            "precision": 0.3333333333333333,
+            "recall": 0.16666666666666666,
+            "f1-score": 0.2222222222222222,
+            "support": 6.0
+          },
+          "kyc_upi_scam": {
+            "precision": 0.5714285714285714,
+            "recall": 0.6666666666666666,
+            "f1-score": 0.6153846153846154,
+            "support": 6.0
+          },
+          "impersonation": {
+            "precision": 0.2857142857142857,
+            "recall": 0.3333333333333333,
+            "f1-score": 0.3076923076923077,
+            "support": 6.0
+          },
+          "courier_customs_scam": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 6.0
+          },
+          "credential_theft": {
+            "precision": 1.0,
+            "recall": 0.16666666666666666,
+            "f1-score": 0.2857142857142857,
+            "support": 6.0
+          },
+          "other_fraud": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 0.0
+          },
+          "accuracy": 0.2222222222222222,
+          "macro avg": {
+            "precision": 0.264047619047619,
+            "recall": 0.19999999999999998,
+            "f1-score": 0.19667277167277164,
+            "support": 54.0
+          },
+          "weighted avg": {
+            "precision": 0.2933862433862434,
+            "recall": 0.2222222222222222,
+            "f1-score": 0.2185253018586352,
+            "support": 54.0
+          }
+        },
+        "confusion_matrix": [
+          [
+            2,
+            0,
+            0,
+            0,
+            1,
+            2,
+            0,
+            1,
+            0,
+            0
+          ],
+          [
+            1,
+            2,
+            0,
+            2,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            4,
+            0,
+            0
+          ],
+          [
+            1,
+            1,
+            2,
+            0,
+            0,
+            0,
+            1,
+            1,
+            0,
+            0
+          ],
+          [
+            2,
+            1,
+            0,
+            0,
+            1,
+            0,
+            1,
+            1,
+            0,
+            0
+          ],
+          [
+            2,
+            0,
+            0,
+            0,
+            0,
+            4,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            2,
+            1,
+            1,
+            0,
+            0,
+            2,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            3,
+            1,
+            1,
+            0,
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            2,
+            2,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        ],
+        "label_order": [
+          "benign",
+          "urgency_pressure",
+          "authority_fear",
+          "digital_arrest",
+          "investment_scam",
+          "kyc_upi_scam",
+          "impersonation",
+          "courier_customs_scam",
+          "credential_theft",
+          "other_fraud"
+        ],
+        "rows": 54
+      },
+      "hindi": {
+        "binary_scam": {
+          "precision": 1.0,
+          "recall": 0.75,
+          "f1": 0.8571428571428571
+        },
+        "macro_f1": 0.025,
+        "supported_label_macro_f1": 0.027777777777777776,
+        "per_class": {
+          "benign": {
+            "precision": 0.14285714285714285,
+            "recall": 1.0,
+            "f1-score": 0.25,
+            "support": 1.0
+          },
+          "urgency_pressure": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 1.0
+          },
+          "authority_fear": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 1.0
+          },
+          "digital_arrest": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 1.0
+          },
+          "investment_scam": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 1.0
+          },
+          "kyc_upi_scam": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 1.0
+          },
+          "impersonation": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 1.0
+          },
+          "courier_customs_scam": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 1.0
+          },
+          "credential_theft": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 1.0
+          },
+          "other_fraud": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 0.0
+          },
+          "accuracy": 0.1111111111111111,
+          "macro avg": {
+            "precision": 0.014285714285714285,
+            "recall": 0.1,
+            "f1-score": 0.025,
+            "support": 9.0
+          },
+          "weighted avg": {
+            "precision": 0.015873015873015872,
+            "recall": 0.1111111111111111,
+            "f1-score": 0.027777777777777776,
+            "support": 9.0
+          }
+        },
+        "confusion_matrix": [
+          [
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0
+          ],
+          [
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        ],
+        "label_order": [
+          "benign",
+          "urgency_pressure",
+          "authority_fear",
+          "digital_arrest",
+          "investment_scam",
+          "kyc_upi_scam",
+          "impersonation",
+          "courier_customs_scam",
+          "credential_theft",
+          "other_fraud"
+        ],
+        "rows": 9
+      }
+    },
+    "word_char": {
+      "all": {
+        "binary_scam": {
+          "precision": 0.8847926267281107,
+          "recall": 0.9142857142857143,
+          "f1": 0.8992974238875878
+        },
+        "macro_f1": 0.32636220689342593,
+        "supported_label_macro_f1": 0.32636220689342593,
+        "per_class": {
+          "benign": {
+            "precision": 0.986862272826801,
+            "recall": 0.9984492689410722,
+            "f1-score": 0.9926219579341482,
+            "support": 4514.0
+          },
+          "urgency_pressure": {
+            "precision": 0.2222222222222222,
+            "recall": 0.15384615384615385,
+            "f1-score": 0.18181818181818182,
+            "support": 13.0
+          },
+          "authority_fear": {
+            "precision": 0.2,
+            "recall": 0.1111111111111111,
+            "f1-score": 0.14285714285714285,
+            "support": 18.0
+          },
+          "digital_arrest": {
+            "precision": 0.2,
+            "recall": 0.07692307692307693,
+            "f1-score": 0.1111111111111111,
+            "support": 13.0
+          },
+          "investment_scam": {
+            "precision": 0.2,
+            "recall": 0.07692307692307693,
+            "f1-score": 0.1111111111111111,
+            "support": 13.0
+          },
+          "kyc_upi_scam": {
+            "precision": 0.7142857142857143,
+            "recall": 0.38461538461538464,
+            "f1-score": 0.5,
+            "support": 13.0
+          },
+          "impersonation": {
+            "precision": 0.16666666666666666,
+            "recall": 0.15384615384615385,
+            "f1-score": 0.16,
+            "support": 13.0
+          },
+          "courier_customs_scam": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 13.0
+          },
+          "credential_theft": {
+            "precision": 0.14285714285714285,
+            "recall": 0.07692307692307693,
+            "f1-score": 0.1,
+            "support": 13.0
+          },
+          "other_fraud": {
+            "precision": 1.0,
+            "recall": 0.9306930693069307,
+            "f1-score": 0.9641025641025641,
+            "support": 101.0
+          },
+          "accuracy": 0.97692633361558,
+          "macro avg": {
+            "precision": 0.3832894018858547,
+            "recall": 0.2963330372436037,
+            "f1-score": 0.32636220689342593,
+            "support": 4724.0
+          },
+          "weighted avg": {
+            "precision": 0.9696644183400914,
+            "recall": 0.97692633361558,
+            "f1-score": 0.9728564417682171,
+            "support": 4724.0
+          }
+        },
+        "confusion_matrix": [
+          [
+            4507,
+            0,
+            0,
+            0,
+            1,
+            0,
+            2,
+            1,
+            3,
+            0
+          ],
+          [
+            8,
+            2,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            1,
+            0
+          ],
+          [
+            6,
+            0,
+            2,
+            1,
+            1,
+            0,
+            2,
+            6,
+            0,
+            0
+          ],
+          [
+            6,
+            3,
+            3,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            8,
+            1,
+            0,
+            0,
+            1,
+            0,
+            2,
+            0,
+            1,
+            0
+          ],
+          [
+            7,
+            0,
+            0,
+            0,
+            0,
+            5,
+            0,
+            0,
+            1,
+            0
+          ],
+          [
+            5,
+            3,
+            2,
+            0,
+            0,
+            0,
+            2,
+            1,
+            0,
+            0
+          ],
+          [
+            4,
+            0,
+            3,
+            2,
+            1,
+            0,
+            3,
+            0,
+            0,
+            0
+          ],
+          [
+            9,
+            0,
+            0,
+            0,
+            1,
+            2,
+            0,
+            0,
+            1,
+            0
+          ],
+          [
+            7,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            94
+          ]
+        ],
+        "label_order": [
+          "benign",
+          "urgency_pressure",
+          "authority_fear",
+          "digital_arrest",
+          "investment_scam",
+          "kyc_upi_scam",
+          "impersonation",
+          "courier_customs_scam",
+          "credential_theft",
+          "other_fraud"
+        ],
+        "rows": 4724
+      },
+      "public_only": {
+        "binary_scam": {
+          "precision": 0.8715596330275229,
+          "recall": 0.8962264150943396,
+          "f1": 0.8837209302325582
+        },
+        "macro_f1": 0.22958820683570963,
+        "supported_label_macro_f1": 0.7652940227856987,
+        "per_class": {
+          "benign": {
+            "precision": 0.9975604346861832,
+            "recall": 0.999333481448567,
+            "f1-score": 0.9984461709211987,
+            "support": 4501.0
+          },
+          "urgency_pressure": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 0.0
+          },
+          "authority_fear": {
+            "precision": 1.0,
+            "recall": 0.2,
+            "f1-score": 0.3333333333333333,
+            "support": 5.0
+          },
+          "digital_arrest": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 0.0
+          },
+          "investment_scam": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 0.0
+          },
+          "kyc_upi_scam": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 0.0
+          },
+          "impersonation": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 0.0
+          },
+          "courier_customs_scam": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 0.0
+          },
+          "credential_theft": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 0.0
+          },
+          "other_fraud": {
+            "precision": 1.0,
+            "recall": 0.9306930693069307,
+            "f1-score": 0.9641025641025641,
+            "support": 101.0
+          },
+          "accuracy": 0.9969611460820491,
+          "macro avg": {
+            "precision": 0.2997560434686183,
+            "recall": 0.21300265507554977,
+            "f1-score": 0.22958820683570963,
+            "support": 4607.0
+          },
+          "weighted avg": {
+            "precision": 0.9976165653402453,
+            "recall": 0.9969611460820491,
+            "f1-score": 0.9969714002512137,
+            "support": 4607.0
+          }
+        },
+        "confusion_matrix": [
+          [
+            4498,
+            0,
+            0,
+            0,
+            0,
+            0,
+            2,
+            0,
+            1,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            4,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            7,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            94
+          ]
+        ],
+        "label_order": [
+          "benign",
+          "urgency_pressure",
+          "authority_fear",
+          "digital_arrest",
+          "investment_scam",
+          "kyc_upi_scam",
+          "impersonation",
+          "courier_customs_scam",
+          "credential_theft",
+          "other_fraud"
+        ],
+        "rows": 4607
+      },
+      "authored_only": {
+        "binary_scam": {
+          "precision": 0.8981481481481481,
+          "recall": 0.9326923076923077,
+          "f1": 0.9150943396226415
+        },
+        "macro_f1": 0.15276468230830562,
+        "supported_label_macro_f1": 0.16973853589811735,
+        "per_class": {
+          "benign": {
+            "precision": 0.15517241379310345,
+            "recall": 0.6923076923076923,
+            "f1-score": 0.2535211267605634,
+            "support": 13.0
+          },
+          "urgency_pressure": {
+            "precision": 0.2222222222222222,
+            "recall": 0.15384615384615385,
+            "f1-score": 0.18181818181818182,
+            "support": 13.0
+          },
+          "authority_fear": {
+            "precision": 0.1111111111111111,
+            "recall": 0.07692307692307693,
+            "f1-score": 0.09090909090909091,
+            "support": 13.0
+          },
+          "digital_arrest": {
+            "precision": 0.2,
+            "recall": 0.07692307692307693,
+            "f1-score": 0.1111111111111111,
+            "support": 13.0
+          },
+          "investment_scam": {
+            "precision": 0.2,
+            "recall": 0.07692307692307693,
+            "f1-score": 0.1111111111111111,
+            "support": 13.0
+          },
+          "kyc_upi_scam": {
+            "precision": 0.7142857142857143,
+            "recall": 0.38461538461538464,
+            "f1-score": 0.5,
+            "support": 13.0
+          },
+          "impersonation": {
+            "precision": 0.2,
+            "recall": 0.15384615384615385,
+            "f1-score": 0.17391304347826086,
+            "support": 13.0
+          },
+          "courier_customs_scam": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 13.0
+          },
+          "credential_theft": {
+            "precision": 0.16666666666666666,
+            "recall": 0.07692307692307693,
+            "f1-score": 0.10526315789473684,
+            "support": 13.0
+          },
+          "other_fraud": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 0.0
+          },
+          "accuracy": 0.18803418803418803,
+          "macro avg": {
+            "precision": 0.1969458128078818,
+            "recall": 0.16923076923076924,
+            "f1-score": 0.15276468230830562,
+            "support": 117.0
+          },
+          "weighted avg": {
+            "precision": 0.21882868089764645,
+            "recall": 0.18803418803418803,
+            "f1-score": 0.16973853589811735,
+            "support": 117.0
+          }
+        },
+        "confusion_matrix": [
+          [
+            9,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            2,
+            0
+          ],
+          [
+            8,
+            2,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            1,
+            0
+          ],
+          [
+            2,
+            0,
+            1,
+            1,
+            1,
+            0,
+            2,
+            6,
+            0,
+            0
+          ],
+          [
+            6,
+            3,
+            3,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            8,
+            1,
+            0,
+            0,
+            1,
+            0,
+            2,
+            0,
+            1,
+            0
+          ],
+          [
+            7,
+            0,
+            0,
+            0,
+            0,
+            5,
+            0,
+            0,
+            1,
+            0
+          ],
+          [
+            5,
+            3,
+            2,
+            0,
+            0,
+            0,
+            2,
+            1,
+            0,
+            0
+          ],
+          [
+            4,
+            0,
+            3,
+            2,
+            1,
+            0,
+            3,
+            0,
+            0,
+            0
+          ],
+          [
+            9,
+            0,
+            0,
+            0,
+            1,
+            2,
+            0,
+            0,
+            1,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        ],
+        "label_order": [
+          "benign",
+          "urgency_pressure",
+          "authority_fear",
+          "digital_arrest",
+          "investment_scam",
+          "kyc_upi_scam",
+          "impersonation",
+          "courier_customs_scam",
+          "credential_theft",
+          "other_fraud"
+        ],
+        "rows": 117
+      },
+      "hinglish": {
+        "binary_scam": {
+          "precision": 0.8888888888888888,
+          "recall": 1.0,
+          "f1": 0.9411764705882353
+        },
+        "macro_f1": 0.2129292929292929,
+        "supported_label_macro_f1": 0.23658810325476992,
+        "per_class": {
+          "benign": {
+            "precision": 0.1875,
+            "recall": 0.5,
+            "f1-score": 0.2727272727272727,
+            "support": 6.0
+          },
+          "urgency_pressure": {
+            "precision": 0.3333333333333333,
+            "recall": 0.3333333333333333,
+            "f1-score": 0.3333333333333333,
+            "support": 6.0
+          },
+          "authority_fear": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 6.0
+          },
+          "digital_arrest": {
+            "precision": 0.25,
+            "recall": 0.16666666666666666,
+            "f1-score": 0.2,
+            "support": 6.0
+          },
+          "investment_scam": {
+            "precision": 0.3333333333333333,
+            "recall": 0.16666666666666666,
+            "f1-score": 0.2222222222222222,
+            "support": 6.0
+          },
+          "kyc_upi_scam": {
+            "precision": 0.6,
+            "recall": 0.5,
+            "f1-score": 0.5454545454545454,
+            "support": 6.0
+          },
+          "impersonation": {
+            "precision": 0.3333333333333333,
+            "recall": 0.3333333333333333,
+            "f1-score": 0.3333333333333333,
+            "support": 6.0
+          },
+          "courier_customs_scam": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 6.0
+          },
+          "credential_theft": {
+            "precision": 0.3333333333333333,
+            "recall": 0.16666666666666666,
+            "f1-score": 0.2222222222222222,
+            "support": 6.0
+          },
+          "other_fraud": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 0.0
+          },
+          "accuracy": 0.24074074074074073,
+          "macro avg": {
+            "precision": 0.2370833333333333,
+            "recall": 0.21666666666666665,
+            "f1-score": 0.2129292929292929,
+            "support": 54.0
+          },
+          "weighted avg": {
+            "precision": 0.2634259259259259,
+            "recall": 0.24074074074074073,
+            "f1-score": 0.23658810325476992,
+            "support": 54.0
+          }
+        },
+        "confusion_matrix": [
+          [
+            3,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            1,
+            0
+          ],
+          [
+            2,
+            2,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            4,
+            0,
+            0
+          ],
+          [
+            2,
+            1,
+            2,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            3,
+            1,
+            0,
+            0,
+            1,
+            0,
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            2,
+            0,
+            0,
+            0,
+            0,
+            3,
+            0,
+            0,
+            1,
+            0
+          ],
+          [
+            0,
+            2,
+            2,
+            0,
+            0,
+            0,
+            2,
+            0,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            2,
+            1,
+            1,
+            0,
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            3,
+            0,
+            0,
+            0,
+            0,
+            2,
+            0,
+            0,
+            1,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        ],
+        "label_order": [
+          "benign",
+          "urgency_pressure",
+          "authority_fear",
+          "digital_arrest",
+          "investment_scam",
+          "kyc_upi_scam",
+          "impersonation",
+          "courier_customs_scam",
+          "credential_theft",
+          "other_fraud"
+        ],
+        "rows": 54
+      },
+      "hindi": {
+        "binary_scam": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "macro_f1": 0.06666666666666667,
+        "supported_label_macro_f1": 0.07407407407407407,
+        "per_class": {
+          "benign": {
+            "precision": 0.5,
+            "recall": 1.0,
+            "f1-score": 0.6666666666666666,
+            "support": 1.0
+          },
+          "urgency_pressure": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 1.0
+          },
+          "authority_fear": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 1.0
+          },
+          "digital_arrest": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 1.0
+          },
+          "investment_scam": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 1.0
+          },
+          "kyc_upi_scam": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 1.0
+          },
+          "impersonation": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 1.0
+          },
+          "courier_customs_scam": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 1.0
+          },
+          "credential_theft": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 1.0
+          },
+          "other_fraud": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 0.0
+          },
+          "accuracy": 0.1111111111111111,
+          "macro avg": {
+            "precision": 0.05,
+            "recall": 0.1,
+            "f1-score": 0.06666666666666667,
+            "support": 9.0
+          },
+          "weighted avg": {
+            "precision": 0.05555555555555555,
+            "recall": 0.1111111111111111,
+            "f1-score": 0.07407407407407407,
+            "support": 9.0
+          }
+        },
+        "confusion_matrix": [
+          [
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0
+          ],
+          [
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        ],
+        "label_order": [
+          "benign",
+          "urgency_pressure",
+          "authority_fear",
+          "digital_arrest",
+          "investment_scam",
+          "kyc_upi_scam",
+          "impersonation",
+          "courier_customs_scam",
+          "credential_theft",
+          "other_fraud"
+        ],
+        "rows": 9
+      }
     }
   },
+  "rule_override_ablation": {
+    "baseline": {
+      "all": {
+        "binary_scam": {
+          "precision": 0.9536423841059603,
+          "recall": 0.6857142857142857,
+          "f1": 0.7977839335180056
+        },
+        "macro_f1": 0.32045038749969534,
+        "supported_label_macro_f1": 0.32045038749969534,
+        "per_class": {
+          "benign": {
+            "precision": 0.9855674611852175,
+            "recall": 0.9984492689410722,
+            "f1-score": 0.9919665456146143,
+            "support": 4514.0
+          },
+          "urgency_pressure": {
+            "precision": 0.18181818181818182,
+            "recall": 0.15384615384615385,
+            "f1-score": 0.16666666666666666,
+            "support": 13.0
+          },
+          "authority_fear": {
+            "precision": 0.125,
+            "recall": 0.05555555555555555,
+            "f1-score": 0.07692307692307693,
+            "support": 18.0
+          },
+          "digital_arrest": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 13.0
+          },
+          "investment_scam": {
+            "precision": 0.3333333333333333,
+            "recall": 0.07692307692307693,
+            "f1-score": 0.125,
+            "support": 13.0
+          },
+          "kyc_upi_scam": {
+            "precision": 0.6363636363636364,
+            "recall": 0.5384615384615384,
+            "f1-score": 0.5833333333333334,
+            "support": 13.0
+          },
+          "impersonation": {
+            "precision": 0.2,
+            "recall": 0.15384615384615385,
+            "f1-score": 0.17391304347826086,
+            "support": 13.0
+          },
+          "courier_customs_scam": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 13.0
+          },
+          "credential_theft": {
+            "precision": 0.5,
+            "recall": 0.07692307692307693,
+            "f1-score": 0.13333333333333333,
+            "support": 13.0
+          },
+          "other_fraud": {
+            "precision": 1.0,
+            "recall": 0.9108910891089109,
+            "f1-score": 0.9533678756476683,
+            "support": 101.0
+          },
+          "accuracy": 0.9765029635901779,
+          "macro avg": {
+            "precision": 0.39620826127003694,
+            "recall": 0.2964895913605539,
+            "f1-score": 0.32045038749969534,
+            "support": 4724.0
+          },
+          "weighted avg": {
+            "precision": 0.9687068621422034,
+            "recall": 0.9765029635901779,
+            "f1-score": 0.971799525958499,
+            "support": 4724.0
+          }
+        },
+        "confusion_matrix": [
+          [
+            4507,
+            1,
+            0,
+            0,
+            1,
+            3,
+            1,
+            1,
+            0,
+            0
+          ],
+          [
+            8,
+            2,
+            0,
+            2,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            10,
+            0,
+            1,
+            1,
+            0,
+            0,
+            1,
+            5,
+            0,
+            0
+          ],
+          [
+            5,
+            2,
+            3,
+            0,
+            0,
+            0,
+            1,
+            1,
+            1,
+            0
+          ],
+          [
+            8,
+            1,
+            0,
+            0,
+            1,
+            0,
+            2,
+            1,
+            0,
+            0
+          ],
+          [
+            6,
+            0,
+            0,
+            0,
+            0,
+            7,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            6,
+            3,
+            1,
+            1,
+            0,
+            0,
+            2,
+            0,
+            0,
+            0
+          ],
+          [
+            6,
+            0,
+            3,
+            1,
+            1,
+            0,
+            2,
+            0,
+            0,
+            0
+          ],
+          [
+            8,
+            2,
+            0,
+            1,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0
+          ],
+          [
+            9,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            92
+          ]
+        ],
+        "label_order": [
+          "benign",
+          "urgency_pressure",
+          "authority_fear",
+          "digital_arrest",
+          "investment_scam",
+          "kyc_upi_scam",
+          "impersonation",
+          "courier_customs_scam",
+          "credential_theft",
+          "other_fraud"
+        ],
+        "rows": 4724
+      },
+      "public_only": {
+        "binary_scam": {
+          "precision": 0.9789473684210527,
+          "recall": 0.8773584905660378,
+          "f1": 0.9253731343283582
+        },
+        "macro_f1": 0.22850369462493916,
+        "supported_label_macro_f1": 0.7616789820831306,
+        "per_class": {
+          "benign": {
+            "precision": 0.9971187943262412,
+            "recall": 0.9995556542990447,
+            "f1-score": 0.9983357372683901,
+            "support": 4501.0
+          },
+          "urgency_pressure": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 0.0
+          },
+          "authority_fear": {
+            "precision": 1.0,
+            "recall": 0.2,
+            "f1-score": 0.3333333333333333,
+            "support": 5.0
+          },
+          "digital_arrest": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 0.0
+          },
+          "investment_scam": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 0.0
+          },
+          "kyc_upi_scam": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 0.0
+          },
+          "impersonation": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 0.0
+          },
+          "courier_customs_scam": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 0.0
+          },
+          "credential_theft": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 0.0
+          },
+          "other_fraud": {
+            "precision": 1.0,
+            "recall": 0.9108910891089109,
+            "f1-score": 0.9533678756476683,
+            "support": 101.0
+          },
+          "accuracy": 0.9967440850879097,
+          "macro avg": {
+            "precision": 0.2997118794326241,
+            "recall": 0.21104467434079557,
+            "f1-score": 0.22850369462493916,
+            "support": 4607.0
+          },
+          "weighted avg": {
+            "precision": 0.997185086447235,
+            "recall": 0.9967440850879097,
+            "f1-score": 0.9966281692103549,
+            "support": 4607.0
+          }
+        },
+        "confusion_matrix": [
+          [
+            4499,
+            1,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            4,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            9,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            92
+          ]
+        ],
+        "label_order": [
+          "benign",
+          "urgency_pressure",
+          "authority_fear",
+          "digital_arrest",
+          "investment_scam",
+          "kyc_upi_scam",
+          "impersonation",
+          "courier_customs_scam",
+          "credential_theft",
+          "other_fraud"
+        ],
+        "rows": 4607
+      },
+      "authored_only": {
+        "binary_scam": {
+          "precision": 0.9107142857142857,
+          "recall": 0.49038461538461536,
+          "f1": 0.6375
+        },
+        "macro_f1": 0.14136141081793255,
+        "supported_label_macro_f1": 0.15706823424214728,
+        "per_class": {
+          "benign": {
+            "precision": 0.13114754098360656,
+            "recall": 0.6153846153846154,
+            "f1-score": 0.21621621621621623,
+            "support": 13.0
+          },
+          "urgency_pressure": {
+            "precision": 0.2,
+            "recall": 0.15384615384615385,
+            "f1-score": 0.17391304347826086,
+            "support": 13.0
+          },
+          "authority_fear": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 13.0
+          },
+          "digital_arrest": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 13.0
+          },
+          "investment_scam": {
+            "precision": 0.3333333333333333,
+            "recall": 0.07692307692307693,
+            "f1-score": 0.125,
+            "support": 13.0
+          },
+          "kyc_upi_scam": {
+            "precision": 0.6363636363636364,
+            "recall": 0.5384615384615384,
+            "f1-score": 0.5833333333333334,
+            "support": 13.0
+          },
+          "impersonation": {
+            "precision": 0.2222222222222222,
+            "recall": 0.15384615384615385,
+            "f1-score": 0.18181818181818182,
+            "support": 13.0
+          },
+          "courier_customs_scam": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 13.0
+          },
+          "credential_theft": {
+            "precision": 0.5,
+            "recall": 0.07692307692307693,
+            "f1-score": 0.13333333333333333,
+            "support": 13.0
+          },
+          "other_fraud": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 0.0
+          },
+          "accuracy": 0.1794871794871795,
+          "macro avg": {
+            "precision": 0.20230667329027985,
+            "recall": 0.16153846153846155,
+            "f1-score": 0.14136141081793255,
+            "support": 117.0
+          },
+          "weighted avg": {
+            "precision": 0.2247851925447554,
+            "recall": 0.1794871794871795,
+            "f1-score": 0.1570682342421473,
+            "support": 117.0
+          }
+        },
+        "confusion_matrix": [
+          [
+            8,
+            0,
+            0,
+            0,
+            1,
+            3,
+            0,
+            1,
+            0,
+            0
+          ],
+          [
+            8,
+            2,
+            0,
+            2,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            6,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            5,
+            0,
+            0
+          ],
+          [
+            5,
+            2,
+            3,
+            0,
+            0,
+            0,
+            1,
+            1,
+            1,
+            0
+          ],
+          [
+            8,
+            1,
+            0,
+            0,
+            1,
+            0,
+            2,
+            1,
+            0,
+            0
+          ],
+          [
+            6,
+            0,
+            0,
+            0,
+            0,
+            7,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            6,
+            3,
+            1,
+            1,
+            0,
+            0,
+            2,
+            0,
+            0,
+            0
+          ],
+          [
+            6,
+            0,
+            3,
+            1,
+            1,
+            0,
+            2,
+            0,
+            0,
+            0
+          ],
+          [
+            8,
+            2,
+            0,
+            1,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        ],
+        "label_order": [
+          "benign",
+          "urgency_pressure",
+          "authority_fear",
+          "digital_arrest",
+          "investment_scam",
+          "kyc_upi_scam",
+          "impersonation",
+          "courier_customs_scam",
+          "credential_theft",
+          "other_fraud"
+        ],
+        "rows": 117
+      },
+      "hinglish": {
+        "binary_scam": {
+          "precision": 0.9090909090909091,
+          "recall": 0.8333333333333334,
+          "f1": 0.8695652173913043
+        },
+        "macro_f1": 0.19667277167277164,
+        "supported_label_macro_f1": 0.21852530185863517,
+        "per_class": {
+          "benign": {
+            "precision": 0.2,
+            "recall": 0.3333333333333333,
+            "f1-score": 0.25,
+            "support": 6.0
+          },
+          "urgency_pressure": {
+            "precision": 0.25,
+            "recall": 0.3333333333333333,
+            "f1-score": 0.2857142857142857,
+            "support": 6.0
+          },
+          "authority_fear": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 6.0
+          },
+          "digital_arrest": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 6.0
+          },
+          "investment_scam": {
+            "precision": 0.3333333333333333,
+            "recall": 0.16666666666666666,
+            "f1-score": 0.2222222222222222,
+            "support": 6.0
+          },
+          "kyc_upi_scam": {
+            "precision": 0.5714285714285714,
+            "recall": 0.6666666666666666,
+            "f1-score": 0.6153846153846154,
+            "support": 6.0
+          },
+          "impersonation": {
+            "precision": 0.2857142857142857,
+            "recall": 0.3333333333333333,
+            "f1-score": 0.3076923076923077,
+            "support": 6.0
+          },
+          "courier_customs_scam": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 6.0
+          },
+          "credential_theft": {
+            "precision": 1.0,
+            "recall": 0.16666666666666666,
+            "f1-score": 0.2857142857142857,
+            "support": 6.0
+          },
+          "other_fraud": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 0.0
+          },
+          "accuracy": 0.2222222222222222,
+          "macro avg": {
+            "precision": 0.264047619047619,
+            "recall": 0.19999999999999998,
+            "f1-score": 0.19667277167277164,
+            "support": 54.0
+          },
+          "weighted avg": {
+            "precision": 0.2933862433862434,
+            "recall": 0.2222222222222222,
+            "f1-score": 0.2185253018586352,
+            "support": 54.0
+          }
+        },
+        "confusion_matrix": [
+          [
+            2,
+            0,
+            0,
+            0,
+            1,
+            2,
+            0,
+            1,
+            0,
+            0
+          ],
+          [
+            1,
+            2,
+            0,
+            2,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            4,
+            0,
+            0
+          ],
+          [
+            1,
+            1,
+            2,
+            0,
+            0,
+            0,
+            1,
+            1,
+            0,
+            0
+          ],
+          [
+            2,
+            1,
+            0,
+            0,
+            1,
+            0,
+            1,
+            1,
+            0,
+            0
+          ],
+          [
+            2,
+            0,
+            0,
+            0,
+            0,
+            4,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            2,
+            1,
+            1,
+            0,
+            0,
+            2,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            3,
+            1,
+            1,
+            0,
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            2,
+            2,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        ],
+        "label_order": [
+          "benign",
+          "urgency_pressure",
+          "authority_fear",
+          "digital_arrest",
+          "investment_scam",
+          "kyc_upi_scam",
+          "impersonation",
+          "courier_customs_scam",
+          "credential_theft",
+          "other_fraud"
+        ],
+        "rows": 54
+      },
+      "hindi": {
+        "binary_scam": {
+          "precision": 1.0,
+          "recall": 0.25,
+          "f1": 0.4
+        },
+        "macro_f1": 0.025,
+        "supported_label_macro_f1": 0.027777777777777776,
+        "per_class": {
+          "benign": {
+            "precision": 0.14285714285714285,
+            "recall": 1.0,
+            "f1-score": 0.25,
+            "support": 1.0
+          },
+          "urgency_pressure": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 1.0
+          },
+          "authority_fear": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 1.0
+          },
+          "digital_arrest": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 1.0
+          },
+          "investment_scam": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 1.0
+          },
+          "kyc_upi_scam": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 1.0
+          },
+          "impersonation": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 1.0
+          },
+          "courier_customs_scam": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 1.0
+          },
+          "credential_theft": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 1.0
+          },
+          "other_fraud": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 0.0
+          },
+          "accuracy": 0.1111111111111111,
+          "macro avg": {
+            "precision": 0.014285714285714285,
+            "recall": 0.1,
+            "f1-score": 0.025,
+            "support": 9.0
+          },
+          "weighted avg": {
+            "precision": 0.015873015873015872,
+            "recall": 0.1111111111111111,
+            "f1-score": 0.027777777777777776,
+            "support": 9.0
+          }
+        },
+        "confusion_matrix": [
+          [
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0
+          ],
+          [
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        ],
+        "label_order": [
+          "benign",
+          "urgency_pressure",
+          "authority_fear",
+          "digital_arrest",
+          "investment_scam",
+          "kyc_upi_scam",
+          "impersonation",
+          "courier_customs_scam",
+          "credential_theft",
+          "other_fraud"
+        ],
+        "rows": 9
+      }
+    },
+    "word_char": {
+      "all": {
+        "binary_scam": {
+          "precision": 0.9554140127388535,
+          "recall": 0.7142857142857143,
+          "f1": 0.8174386920980926
+        },
+        "macro_f1": 0.32636220689342593,
+        "supported_label_macro_f1": 0.32636220689342593,
+        "per_class": {
+          "benign": {
+            "precision": 0.986862272826801,
+            "recall": 0.9984492689410722,
+            "f1-score": 0.9926219579341482,
+            "support": 4514.0
+          },
+          "urgency_pressure": {
+            "precision": 0.2222222222222222,
+            "recall": 0.15384615384615385,
+            "f1-score": 0.18181818181818182,
+            "support": 13.0
+          },
+          "authority_fear": {
+            "precision": 0.2,
+            "recall": 0.1111111111111111,
+            "f1-score": 0.14285714285714285,
+            "support": 18.0
+          },
+          "digital_arrest": {
+            "precision": 0.2,
+            "recall": 0.07692307692307693,
+            "f1-score": 0.1111111111111111,
+            "support": 13.0
+          },
+          "investment_scam": {
+            "precision": 0.2,
+            "recall": 0.07692307692307693,
+            "f1-score": 0.1111111111111111,
+            "support": 13.0
+          },
+          "kyc_upi_scam": {
+            "precision": 0.7142857142857143,
+            "recall": 0.38461538461538464,
+            "f1-score": 0.5,
+            "support": 13.0
+          },
+          "impersonation": {
+            "precision": 0.16666666666666666,
+            "recall": 0.15384615384615385,
+            "f1-score": 0.16,
+            "support": 13.0
+          },
+          "courier_customs_scam": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 13.0
+          },
+          "credential_theft": {
+            "precision": 0.14285714285714285,
+            "recall": 0.07692307692307693,
+            "f1-score": 0.1,
+            "support": 13.0
+          },
+          "other_fraud": {
+            "precision": 1.0,
+            "recall": 0.9306930693069307,
+            "f1-score": 0.9641025641025641,
+            "support": 101.0
+          },
+          "accuracy": 0.97692633361558,
+          "macro avg": {
+            "precision": 0.3832894018858547,
+            "recall": 0.2963330372436037,
+            "f1-score": 0.32636220689342593,
+            "support": 4724.0
+          },
+          "weighted avg": {
+            "precision": 0.9696644183400914,
+            "recall": 0.97692633361558,
+            "f1-score": 0.9728564417682171,
+            "support": 4724.0
+          }
+        },
+        "confusion_matrix": [
+          [
+            4507,
+            0,
+            0,
+            0,
+            1,
+            0,
+            2,
+            1,
+            3,
+            0
+          ],
+          [
+            8,
+            2,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            1,
+            0
+          ],
+          [
+            6,
+            0,
+            2,
+            1,
+            1,
+            0,
+            2,
+            6,
+            0,
+            0
+          ],
+          [
+            6,
+            3,
+            3,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            8,
+            1,
+            0,
+            0,
+            1,
+            0,
+            2,
+            0,
+            1,
+            0
+          ],
+          [
+            7,
+            0,
+            0,
+            0,
+            0,
+            5,
+            0,
+            0,
+            1,
+            0
+          ],
+          [
+            5,
+            3,
+            2,
+            0,
+            0,
+            0,
+            2,
+            1,
+            0,
+            0
+          ],
+          [
+            4,
+            0,
+            3,
+            2,
+            1,
+            0,
+            3,
+            0,
+            0,
+            0
+          ],
+          [
+            9,
+            0,
+            0,
+            0,
+            1,
+            2,
+            0,
+            0,
+            1,
+            0
+          ],
+          [
+            7,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            94
+          ]
+        ],
+        "label_order": [
+          "benign",
+          "urgency_pressure",
+          "authority_fear",
+          "digital_arrest",
+          "investment_scam",
+          "kyc_upi_scam",
+          "impersonation",
+          "courier_customs_scam",
+          "credential_theft",
+          "other_fraud"
+        ],
+        "rows": 4724
+      },
+      "public_only": {
+        "binary_scam": {
+          "precision": 0.9693877551020408,
+          "recall": 0.8962264150943396,
+          "f1": 0.9313725490196079
+        },
+        "macro_f1": 0.22958820683570963,
+        "supported_label_macro_f1": 0.7652940227856987,
+        "per_class": {
+          "benign": {
+            "precision": 0.9975604346861832,
+            "recall": 0.999333481448567,
+            "f1-score": 0.9984461709211987,
+            "support": 4501.0
+          },
+          "urgency_pressure": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 0.0
+          },
+          "authority_fear": {
+            "precision": 1.0,
+            "recall": 0.2,
+            "f1-score": 0.3333333333333333,
+            "support": 5.0
+          },
+          "digital_arrest": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 0.0
+          },
+          "investment_scam": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 0.0
+          },
+          "kyc_upi_scam": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 0.0
+          },
+          "impersonation": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 0.0
+          },
+          "courier_customs_scam": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 0.0
+          },
+          "credential_theft": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 0.0
+          },
+          "other_fraud": {
+            "precision": 1.0,
+            "recall": 0.9306930693069307,
+            "f1-score": 0.9641025641025641,
+            "support": 101.0
+          },
+          "accuracy": 0.9969611460820491,
+          "macro avg": {
+            "precision": 0.2997560434686183,
+            "recall": 0.21300265507554977,
+            "f1-score": 0.22958820683570963,
+            "support": 4607.0
+          },
+          "weighted avg": {
+            "precision": 0.9976165653402453,
+            "recall": 0.9969611460820491,
+            "f1-score": 0.9969714002512137,
+            "support": 4607.0
+          }
+        },
+        "confusion_matrix": [
+          [
+            4498,
+            0,
+            0,
+            0,
+            0,
+            0,
+            2,
+            0,
+            1,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            4,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            7,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            94
+          ]
+        ],
+        "label_order": [
+          "benign",
+          "urgency_pressure",
+          "authority_fear",
+          "digital_arrest",
+          "investment_scam",
+          "kyc_upi_scam",
+          "impersonation",
+          "courier_customs_scam",
+          "credential_theft",
+          "other_fraud"
+        ],
+        "rows": 4607
+      },
+      "authored_only": {
+        "binary_scam": {
+          "precision": 0.9322033898305084,
+          "recall": 0.5288461538461539,
+          "f1": 0.6748466257668712
+        },
+        "macro_f1": 0.15276468230830562,
+        "supported_label_macro_f1": 0.16973853589811735,
+        "per_class": {
+          "benign": {
+            "precision": 0.15517241379310345,
+            "recall": 0.6923076923076923,
+            "f1-score": 0.2535211267605634,
+            "support": 13.0
+          },
+          "urgency_pressure": {
+            "precision": 0.2222222222222222,
+            "recall": 0.15384615384615385,
+            "f1-score": 0.18181818181818182,
+            "support": 13.0
+          },
+          "authority_fear": {
+            "precision": 0.1111111111111111,
+            "recall": 0.07692307692307693,
+            "f1-score": 0.09090909090909091,
+            "support": 13.0
+          },
+          "digital_arrest": {
+            "precision": 0.2,
+            "recall": 0.07692307692307693,
+            "f1-score": 0.1111111111111111,
+            "support": 13.0
+          },
+          "investment_scam": {
+            "precision": 0.2,
+            "recall": 0.07692307692307693,
+            "f1-score": 0.1111111111111111,
+            "support": 13.0
+          },
+          "kyc_upi_scam": {
+            "precision": 0.7142857142857143,
+            "recall": 0.38461538461538464,
+            "f1-score": 0.5,
+            "support": 13.0
+          },
+          "impersonation": {
+            "precision": 0.2,
+            "recall": 0.15384615384615385,
+            "f1-score": 0.17391304347826086,
+            "support": 13.0
+          },
+          "courier_customs_scam": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 13.0
+          },
+          "credential_theft": {
+            "precision": 0.16666666666666666,
+            "recall": 0.07692307692307693,
+            "f1-score": 0.10526315789473684,
+            "support": 13.0
+          },
+          "other_fraud": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 0.0
+          },
+          "accuracy": 0.18803418803418803,
+          "macro avg": {
+            "precision": 0.1969458128078818,
+            "recall": 0.16923076923076924,
+            "f1-score": 0.15276468230830562,
+            "support": 117.0
+          },
+          "weighted avg": {
+            "precision": 0.21882868089764645,
+            "recall": 0.18803418803418803,
+            "f1-score": 0.16973853589811735,
+            "support": 117.0
+          }
+        },
+        "confusion_matrix": [
+          [
+            9,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            2,
+            0
+          ],
+          [
+            8,
+            2,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            1,
+            0
+          ],
+          [
+            2,
+            0,
+            1,
+            1,
+            1,
+            0,
+            2,
+            6,
+            0,
+            0
+          ],
+          [
+            6,
+            3,
+            3,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            8,
+            1,
+            0,
+            0,
+            1,
+            0,
+            2,
+            0,
+            1,
+            0
+          ],
+          [
+            7,
+            0,
+            0,
+            0,
+            0,
+            5,
+            0,
+            0,
+            1,
+            0
+          ],
+          [
+            5,
+            3,
+            2,
+            0,
+            0,
+            0,
+            2,
+            1,
+            0,
+            0
+          ],
+          [
+            4,
+            0,
+            3,
+            2,
+            1,
+            0,
+            3,
+            0,
+            0,
+            0
+          ],
+          [
+            9,
+            0,
+            0,
+            0,
+            1,
+            2,
+            0,
+            0,
+            1,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        ],
+        "label_order": [
+          "benign",
+          "urgency_pressure",
+          "authority_fear",
+          "digital_arrest",
+          "investment_scam",
+          "kyc_upi_scam",
+          "impersonation",
+          "courier_customs_scam",
+          "credential_theft",
+          "other_fraud"
+        ],
+        "rows": 117
+      },
+      "hinglish": {
+        "binary_scam": {
+          "precision": 0.9210526315789473,
+          "recall": 0.7291666666666666,
+          "f1": 0.813953488372093
+        },
+        "macro_f1": 0.2129292929292929,
+        "supported_label_macro_f1": 0.23658810325476992,
+        "per_class": {
+          "benign": {
+            "precision": 0.1875,
+            "recall": 0.5,
+            "f1-score": 0.2727272727272727,
+            "support": 6.0
+          },
+          "urgency_pressure": {
+            "precision": 0.3333333333333333,
+            "recall": 0.3333333333333333,
+            "f1-score": 0.3333333333333333,
+            "support": 6.0
+          },
+          "authority_fear": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 6.0
+          },
+          "digital_arrest": {
+            "precision": 0.25,
+            "recall": 0.16666666666666666,
+            "f1-score": 0.2,
+            "support": 6.0
+          },
+          "investment_scam": {
+            "precision": 0.3333333333333333,
+            "recall": 0.16666666666666666,
+            "f1-score": 0.2222222222222222,
+            "support": 6.0
+          },
+          "kyc_upi_scam": {
+            "precision": 0.6,
+            "recall": 0.5,
+            "f1-score": 0.5454545454545454,
+            "support": 6.0
+          },
+          "impersonation": {
+            "precision": 0.3333333333333333,
+            "recall": 0.3333333333333333,
+            "f1-score": 0.3333333333333333,
+            "support": 6.0
+          },
+          "courier_customs_scam": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 6.0
+          },
+          "credential_theft": {
+            "precision": 0.3333333333333333,
+            "recall": 0.16666666666666666,
+            "f1-score": 0.2222222222222222,
+            "support": 6.0
+          },
+          "other_fraud": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 0.0
+          },
+          "accuracy": 0.24074074074074073,
+          "macro avg": {
+            "precision": 0.2370833333333333,
+            "recall": 0.21666666666666665,
+            "f1-score": 0.2129292929292929,
+            "support": 54.0
+          },
+          "weighted avg": {
+            "precision": 0.2634259259259259,
+            "recall": 0.24074074074074073,
+            "f1-score": 0.23658810325476992,
+            "support": 54.0
+          }
+        },
+        "confusion_matrix": [
+          [
+            3,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            1,
+            0
+          ],
+          [
+            2,
+            2,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            4,
+            0,
+            0
+          ],
+          [
+            2,
+            1,
+            2,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            3,
+            1,
+            0,
+            0,
+            1,
+            0,
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            2,
+            0,
+            0,
+            0,
+            0,
+            3,
+            0,
+            0,
+            1,
+            0
+          ],
+          [
+            0,
+            2,
+            2,
+            0,
+            0,
+            0,
+            2,
+            0,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            2,
+            1,
+            1,
+            0,
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            3,
+            0,
+            0,
+            0,
+            0,
+            2,
+            0,
+            0,
+            1,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        ],
+        "label_order": [
+          "benign",
+          "urgency_pressure",
+          "authority_fear",
+          "digital_arrest",
+          "investment_scam",
+          "kyc_upi_scam",
+          "impersonation",
+          "courier_customs_scam",
+          "credential_theft",
+          "other_fraud"
+        ],
+        "rows": 54
+      },
+      "hindi": {
+        "binary_scam": {
+          "precision": 1.0,
+          "recall": 0.875,
+          "f1": 0.9333333333333333
+        },
+        "macro_f1": 0.06666666666666667,
+        "supported_label_macro_f1": 0.07407407407407407,
+        "per_class": {
+          "benign": {
+            "precision": 0.5,
+            "recall": 1.0,
+            "f1-score": 0.6666666666666666,
+            "support": 1.0
+          },
+          "urgency_pressure": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 1.0
+          },
+          "authority_fear": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 1.0
+          },
+          "digital_arrest": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 1.0
+          },
+          "investment_scam": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 1.0
+          },
+          "kyc_upi_scam": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 1.0
+          },
+          "impersonation": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 1.0
+          },
+          "courier_customs_scam": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 1.0
+          },
+          "credential_theft": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 1.0
+          },
+          "other_fraud": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 0.0
+          },
+          "accuracy": 0.1111111111111111,
+          "macro avg": {
+            "precision": 0.05,
+            "recall": 0.1,
+            "f1-score": 0.06666666666666667,
+            "support": 9.0
+          },
+          "weighted avg": {
+            "precision": 0.05555555555555555,
+            "recall": 0.1111111111111111,
+            "f1-score": 0.07407407407407407,
+            "support": 9.0
+          }
+        },
+        "confusion_matrix": [
+          [
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0
+          ],
+          [
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        ],
+        "label_order": [
+          "benign",
+          "urgency_pressure",
+          "authority_fear",
+          "digital_arrest",
+          "investment_scam",
+          "kyc_upi_scam",
+          "impersonation",
+          "courier_customs_scam",
+          "credential_theft",
+          "other_fraud"
+        ],
+        "rows": 9
+      }
+    }
+  },
+  "selected": "word_char",
   "folds": [
     {
-      "fear_authority": {
-        "precision": 0.0,
-        "recall": 0.0,
-        "f1-score": 0.0,
-        "support": 1.0
-      },
-      "greed_opportunity": {
-        "precision": 1.0,
-        "recall": 0.9905956112852664,
-        "f1-score": 0.9952755905511811,
-        "support": 638.0
-      },
-      "none": {
-        "precision": 0.9922907488986784,
-        "recall": 1.0,
-        "f1-score": 0.996130458817026,
-        "support": 901.0
-      },
-      "accuracy": 0.9954545454545455,
-      "macro avg": {
-        "precision": 0.6640969162995595,
-        "recall": 0.6635318704284221,
-        "f1-score": 0.6638020164560691,
-        "support": 1540.0
-      },
-      "weighted avg": {
-        "precision": 0.9948402368556554,
-        "recall": 0.9954545454545455,
-        "f1-score": 0.9951294611466195,
-        "support": 1540.0
-      }
+      "fold": 0,
+      "train_rows": 3780,
+      "test_rows": 944,
+      "shared_groups": 0,
+      "shared_seeds": 0,
+      "retained_rules": []
     },
     {
-      "fear_authority": {
-        "precision": 0.0,
-        "recall": 0.0,
-        "f1-score": 0.0,
-        "support": 1.0
-      },
-      "greed_opportunity": {
-        "precision": 1.0,
-        "recall": 0.9827586206896551,
-        "f1-score": 0.991304347826087,
-        "support": 638.0
-      },
-      "none": {
-        "precision": 0.9868421052631579,
-        "recall": 1.0,
-        "f1-score": 0.9933774834437086,
-        "support": 900.0
-      },
-      "accuracy": 0.9922027290448343,
-      "macro avg": {
-        "precision": 0.662280701754386,
-        "recall": 0.6609195402298851,
-        "f1-score": 0.6615606104232652,
-        "support": 1539.0
-      },
-      "weighted avg": {
-        "precision": 0.9916555521356999,
-        "recall": 0.9922027290448343,
-        "f1-score": 0.9918725854531392,
-        "support": 1539.0
-      }
+      "fold": 1,
+      "train_rows": 3783,
+      "test_rows": 941,
+      "shared_groups": 0,
+      "shared_seeds": 0,
+      "retained_rules": []
     },
     {
-      "fear_authority": {
-        "precision": 0.0,
-        "recall": 0.0,
-        "f1-score": 0.0,
-        "support": 1.0
-      },
-      "greed_opportunity": {
-        "precision": 0.995260663507109,
-        "recall": 0.987460815047022,
-        "f1-score": 0.991345397324941,
-        "support": 638.0
-      },
-      "none": {
-        "precision": 0.9900662251655629,
-        "recall": 0.9966666666666667,
-        "f1-score": 0.9933554817275747,
-        "support": 900.0
-      },
-      "accuracy": 0.9922027290448343,
-      "macro avg": {
-        "precision": 0.6617756295575573,
-        "recall": 0.6613758272378962,
-        "f1-score": 0.6615669596841719,
-        "support": 1539.0
-      },
-      "weighted avg": {
-        "precision": 0.9915762871777402,
-        "recall": 0.9922027290448343,
-        "f1-score": 0.9918767362236061,
-        "support": 1539.0
-      }
+      "fold": 2,
+      "train_rows": 3776,
+      "test_rows": 948,
+      "shared_groups": 0,
+      "shared_seeds": 0,
+      "retained_rules": []
     },
     {
-      "fear_authority": {
-        "precision": 0.0,
-        "recall": 0.0,
-        "f1-score": 0.0,
-        "support": 1.0
-      },
-      "greed_opportunity": {
-        "precision": 1.0,
-        "recall": 0.9780564263322884,
-        "f1-score": 0.9889064976228209,
-        "support": 638.0
-      },
-      "none": {
-        "precision": 0.9836065573770492,
-        "recall": 1.0,
-        "f1-score": 0.9917355371900827,
-        "support": 900.0
-      },
-      "accuracy": 0.9902534113060428,
-      "macro avg": {
-        "precision": 0.6612021857923497,
-        "recall": 0.6593521421107628,
-        "f1-score": 0.6602140116043013,
-        "support": 1539.0
-      },
-      "weighted avg": {
-        "precision": 0.9897634188689696,
-        "recall": 0.9902534113060428,
-        "f1-score": 0.989918342400542,
-        "support": 1539.0
-      }
+      "fold": 3,
+      "train_rows": 3776,
+      "test_rows": 948,
+      "shared_groups": 0,
+      "shared_seeds": 0,
+      "retained_rules": []
     },
     {
-      "fear_authority": {
-        "precision": 0.0,
-        "recall": 0.0,
-        "f1-score": 0.0,
-        "support": 1.0
-      },
-      "greed_opportunity": {
-        "precision": 0.9968354430379747,
-        "recall": 0.987460815047022,
-        "f1-score": 0.9921259842519685,
-        "support": 638.0
-      },
-      "none": {
-        "precision": 0.9900771775082691,
-        "recall": 0.9977777777777778,
-        "f1-score": 0.993912562257886,
-        "support": 900.0
-      },
-      "accuracy": 0.9928525016244314,
-      "macro avg": {
-        "precision": 0.6623042068487479,
-        "recall": 0.6617461976082666,
-        "f1-score": 0.6620128488366182,
-        "support": 1539.0
-      },
-      "weighted avg": {
-        "precision": 0.9922355246365626,
-        "recall": 0.9928525016244314,
-        "f1-score": 0.9925261104514965,
-        "support": 1539.0
-      }
+      "fold": 4,
+      "train_rows": 3781,
+      "test_rows": 943,
+      "shared_groups": 0,
+      "shared_seeds": 0,
+      "retained_rules": []
     }
   ],
-  "confusion_matrix": [
-    [
-      0,
-      0,
-      5
-    ],
-    [
-      0,
-      3143,
-      47
-    ],
-    [
-      0,
-      5,
-      4496
-    ]
-  ],
-  "label_order": [
-    "fear_authority",
-    "greed_opportunity",
-    "none"
-  ],
-  "counts": {
-    "none": 4501,
-    "greed_opportunity": 3190,
-    "fear_authority": 5
-  },
-  "evaluation": "Five-fold stratified out-of-fold predictions after normalized-text deduplication; final artifact refit on all rows",
-  "data_sha256": "fed1b84e47261773213bcca6d7fc214adc27393293abe1499170d103b1cf6cbf",
-  "limitation": "Fear support only five reported excerpts; greed labels weak. Cross-source style shortcuts and remaining near-duplicates possible. Not deployment accuracy."
+  "evaluation": "Five grouped OOF folds; lineage and near-duplicate components stay together. All transformations fit on training folds.",
+  "selection": "Keep candidate only if public binary F1 drops <=0.005 and authored macro-F1 rises; exploratory CV selection, no untouched final test.",
+  "rule_policy": "No keyword score/signature override. Fold-trained supported rules evaluated separately; retained as evidence only if the ablation improves macro-F1.",
+  "binary_metric": "Scam if 1-P(benign)>=0.5, matching text score; rule ablation binary uses overridden argmax label instead.",
+  "macro_definition": "macro_f1 averages all ten declared labels including zero-support classes; supported_label_macro_f1 excludes classes absent from that slice.",
+  "limitation": "Expanded scam types have synthetic/augmented support only. Hindi/Hinglish results are authored diagnostics, not real-world recall. Public source/style confounding remains.",
+  "retained_rules": []
 }

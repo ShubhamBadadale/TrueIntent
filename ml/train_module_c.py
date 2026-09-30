@@ -25,7 +25,7 @@ def new_pipeline():
                      ('clf', LogisticRegression(max_iter=1000, random_state=42, class_weight='balanced'))])
 
 
-def train_module_c(sms_path=SMS_PATH, signature_path=SIGNATURE_PATH, model_output_path='ml/models/module_c.pkl'):
+def train_legacy_module_c(sms_path=SMS_PATH, signature_path=SIGNATURE_PATH, model_output_path='ml/models/module_c.pkl'):
     # Retain callable arguments, but all source assembly now belongs to the generator.
     # Never silently weak-label arbitrary spam using the predictor's keyword list.
     path = Path(signature_path)
@@ -78,6 +78,14 @@ def train_module_c(sms_path=SMS_PATH, signature_path=SIGNATURE_PATH, model_outpu
                   'actual':data.signature,'predicted':predictions}).to_csv(path.with_name('module_c_oof_predictions.csv'),index=False)
     print(json.dumps(metrics,indent=2))
     return artifact
+
+
+def train_module_c(sms_path=SMS_PATH, signature_path=SIGNATURE_PATH, model_output_path='ml/models/module_c.pkl'):
+    if not Path(signature_path).exists():
+        print('DATASET PENDING: run ml/generate_module_c_data.py after source approval')
+        return None
+    from ml.evaluate_module_c import train_intents
+    return train_intents(signature_path, model_output_path)
 
 
 if __name__ == '__main__':

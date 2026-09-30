@@ -6,6 +6,12 @@ pressed. It does not transfer money. The web checkbox remains supported unchange
 
 ## Build and run
 
+**Current compatibility:** The legacy Android request does not assert IEEE-CIS
+source units and is now rejected with HTTP 422. Real INR transaction assessment
+is disabled; a fresh call report does not make synthetic training telemetry valid.
+The app is retained as a historical call-state demo and is not a working fraud
+detector. See [Module A correctness update](MODULE_A_CORRECTNESS.md).
+
 Open `android/` in Android Studio, install Android SDK platform 35 and build tools
 35.0.0, and select JDK 17 or 21. The project pins AGP 8.9.2, Kotlin 2.1.20 and
 Gradle 8.11.1. From `android/`: `./gradlew assembleDebug` (Windows: `./gradlew.bat assembleDebug`).

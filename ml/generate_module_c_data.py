@@ -75,11 +75,12 @@ def validate_examples(frame):
     return frame.drop_duplicates('group_id').reset_index(drop=True)
 
 
-def generate_module_c_data(raw_dir=ROOT / 'data/raw', fear_path=ROOT / 'data/module_c_fear_sources.json'):
+def generate_module_c_data(raw_dir=ROOT / 'data/raw', fear_path=ROOT / 'data/module_c_fear_sources.json', include_emails=True):
     raw_dir = Path(raw_dir)
     sms_zip, email_zip = raw_dir / 'module_c_sms.zip', raw_dir / 'module_c_emails.zip'
     download_if_missing(sms_zip, SMS_URL)
-    download_if_missing(email_zip, EMAIL_URL)
+    if include_emails:
+        download_if_missing(email_zip, EMAIL_URL)
     rows = []
     with zipfile.ZipFile(sms_zip) as archive:
         sms = archive.read('SMSSpamCollection').decode('utf-8-sig')
@@ -97,13 +98,14 @@ def generate_module_c_data(raw_dir=ROOT / 'data/raw', fear_path=ROOT / 'data/mod
             continue
         rows.append(dict(text=text, signature=signature, source_url=SMS_CITATION, source_id=f'sms:{number}',
                          source_kind='real_sms', label_basis=basis, group_id=group_key(text)))
-    with zipfile.ZipFile(email_zip) as archive:
-        payload = archive.read('fradulent_emails.txt')
-    for number, text in email_bodies(payload):
-        rows.append(dict(text=text, signature='greed_opportunity', source_url=EMAIL_CITATION,
-                         source_id=f'email:{number}', source_kind='real_419_email',
-                         label_basis='Weak corpus-level mapping: advance-fee fraud to greed/opportunity; not individually reviewed',
-                         group_id=group_key(text)))
+    if include_emails:
+        with zipfile.ZipFile(email_zip) as archive:
+            payload = archive.read('fradulent_emails.txt')
+        for number, text in email_bodies(payload):
+            rows.append(dict(text=text, signature='greed_opportunity', source_url=EMAIL_CITATION,
+                             source_id=f'email:{number}', source_kind='real_419_email',
+                             label_basis='Weak corpus-level mapping: advance-fee fraud to greed/opportunity; not individually reviewed',
+                             group_id=group_key(text)))
     for item in json.loads(Path(fear_path).read_text(encoding='utf-8')):
         rows.append(dict(text=item['text'], signature=item['signature'], source_url=item['source_url'],
                          source_id=item['example_id'], source_kind=item['source_kind'], label_basis=item['label_basis'],
@@ -116,7 +118,8 @@ def generate_module_c_data(raw_dir=ROOT / 'data/raw', fear_path=ROOT / 'data/mod
     metadata = dict(rows=len(data), counts=data.signature.value_counts().to_dict(),
                     source_counts=data.source_kind.value_counts().to_dict(), duplicates_removed=len(rows)-len(data),
                     sms_spam_excluded=excluded, data_sha256=digest(output.read_bytes()),
-                    source_hashes={p.name:digest(p.read_bytes()) for p in (sms_zip,email_zip,Path(fear_path))},
+                    source_hashes={p.name:digest(p.read_bytes()) for p in ([sms_zip,Path(fear_path)] + ([email_zip] if include_emails else []))},
+                    emails_included=include_emails,
                     caveat='Only five fear examples, mostly victim-reported fragments; no invented text. Weak greed labels. Not real-world performance.')
     output.with_suffix('.metadata.json').write_text(json.dumps(metadata,indent=2)+'\n',encoding='utf-8')
     print(json.dumps(metadata,indent=2))
@@ -126,5 +129,6 @@ def generate_module_c_data(raw_dir=ROOT / 'data/raw', fear_path=ROOT / 'data/mod
 if __name__ == '__main__':
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--raw-dir',type=Path,default=ROOT/'data/raw')
+    parser.add_argument('--skip-emails', action='store_true', help='Explicitly exclude the email corpus; record a different source population')
     args=parser.parse_args()
-    generate_module_c_data(args.raw_dir)
+    generate_module_c_data(args.raw_dir, include_emails=not args.skip_emails)
