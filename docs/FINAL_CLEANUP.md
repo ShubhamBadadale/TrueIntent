@@ -1,5 +1,8 @@
 # Practical final cleanup
 
+> Historical phase record, superseded by [`AUDIT_REPORT.md`](AUDIT_REPORT.md), which documents the
+> later repository-wide audit. The measurements below are accurate for that phase.
+
 No architecture redesign or model retraining was performed. Existing model metrics
 remain historical evaluation results; these changes do not establish a detection
 accuracy improvement.
@@ -21,7 +24,7 @@ accuracy improvement.
 
 ## Verification
 
-- Full backend/ML suite: `.venv\Scripts\python.exe -m pytest tests -q`:
+- Full ml suite: `.venv\Scripts\python.exe -m pytest tests -q`:
   **149 passed, 2 skipped**, two existing dependency deprecation warnings.
   Baseline before cleanup: 135 passed, 2 skipped.
 - Frontend: `npm test`: **14 passed** (baseline 12).

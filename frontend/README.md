@@ -1,16 +1,46 @@
-# React + Vite
+# TrueIntent web portal (Module E)
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+React + Vite + Tailwind front end for the TrueIntent FastAPI backend. It renders
+four views: **Combined Fraud Analysis** (default), **Check a Link**,
+**Check a Message / Screenshot**, and the **Transaction Benchmark**.
 
-Currently, two official plugins are available:
+## Commands
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+```bash
+npm install
+npm run dev        # http://localhost:5173
+npm run build      # production bundle into dist/
+npm run preview    # serve the built bundle
+npm run lint       # oxlint
+npm test           # node --test tests/*.test.mjs
+```
 
-## React Compiler
+`npm test` boots a real Vite SSR server, loads the actual modules and renders
+the real components with `react-dom/server` against a mocked `fetch`. It is not a
+browser end-to-end suite; there is no headless-browser dependency in this
+project.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Backend URL
 
-## Expanding the Oxlint configuration
+The API client in `src/api.js` reads `VITE_API_URL` and defaults to
+`http://localhost:8000`. To point the portal elsewhere:
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+```bash
+VITE_API_URL=http://localhost:8000 npm run dev
+```
+
+In Docker Compose the same variable is supplied as a build argument, so the
+bundle must be rebuilt (`docker compose build frontend`) to change it.
+
+## Limits mirrored from the backend
+
+`src/api.js` exports the same caps the API enforces so oversized input fails
+locally with a readable message instead of a bare 422: 20,000 characters of
+text, 8,192 characters of URL, 10 MB per screenshot, and PNG/JPEG/WebP/BMP only.
+
+## Honest-unavailable behaviour
+
+Unavailable evidence is rendered as such. Transaction risk is always shown as
+"Unavailable — not scored" because Module A is a source-unit research benchmark
+and is deliberately excluded from combined fusion. Risk Index values are
+uncalibrated and are labelled as such in every results view.

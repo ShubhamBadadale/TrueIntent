@@ -5,7 +5,11 @@ from ml.predict_module_a import predict_module_a
 from ml.predict_module_b import check_url
 from ml.predict_module_c import analyze_message
 from ml.ocr_module_c import analyze_image, extract_text_from_image
-from ml.predict_module_d import compute_unified_score
+from ml.predict_module_d import (
+    compute_unified_score,
+    fuse_modules,
+    standardize_module_result,
+)
 
 __all__ = [
     "predict_module_a",
@@ -14,4 +18,6 @@ __all__ = [
     "analyze_image",
     "extract_text_from_image",
     "compute_unified_score",
+    "fuse_modules",
+    "standardize_module_result",
 ]

@@ -1,80 +1,154 @@
 # Decision Log
 
+Architecture decision records. Entries marked **Superseded** describe an approach that was tried and
+removed; they are kept so the reasoning trail stays auditable.
+
+---
+
 ## ADR-001: Project Architecture & Scaffolding Strategy
 - **Date**: 2026-09-12
 - **Status**: Approved
 - **Context**: TrueIntent requires a modular structure isolating ML model pipelines, backend API logic, frontend presentation, data stores, tests, and project documentation.
-- **Decision**: 
+- **Decision**:
   - Monorepo folder structure with `/backend` (FastAPI), `/frontend` (React), `/ml` (training scripts, notebooks, models), `/data` (raw & processed), `/tests`, and `/docs`.
   - Privacy-by-design: `data/raw/*` is strictly ignored in git to ensure zero user PII or raw transaction leaks into source control.
 - **Consequences**: Enables clean separation of concerns and step-by-step modular implementation across iterations.
 
 ---
 
-## ADR-002: Dataset Sourcing Strategy & Module C Classifier Architecture
+## ADR-002: Dataset Sourcing Strategy
 - **Date**: 2026-09-12
-- **Status**: Approved
+- **Status**: Superseded in part
 - **Context**:
-  - Module A requires transaction + call state telemetry; synthetic data generated due to confidential telephony-bank telemetry.
-  - Module B dataset (URLs) to be provided as a real dataset by project owner at `data/raw/module_b_urls.csv`.
-  - Module C requires both binary scam vs. legitimate classification and fine-grained psychological manipulation signature identification (`fear_authority`, `greed_opportunity`, `none`).
-- **Decision**:
-  - **Module A**: Synthetic dataset (`data/raw/module_a_transactions.csv`) created with explicit APP fraud assumptions (90% call correlation for fraud vs 8% for legitimate).
-  - **Module B**: Real dataset (`data/raw/module_b_urls.csv`) provided by user.
-  - **Module C Classifier Architecture (Two-Stage Pipeline)**:
-    - **Stage 1 (Binary Scam Detector)**: Train a base TF-IDF / Logistic Regression / BERT classifier on `data/raw/sms_spam_collection.csv` for general scam/legitimate detection.
-    - **Stage 2 (Signature Classifier)**: Use `data/raw/signature_examples.csv` as a fine-tuned secondary classifier or rules-augmented pattern matching layer to identify `fear_authority` vs `greed_opportunity` tactics on messages flagged as scams.
-- **Consequences**: Clean separation of base scam detection and specialized psychological signature classification without data leakage or overfitting on small curated samples.
+  - Module A requires transaction + call-state telemetry. No public dataset links call state to authorised-payment fraud.
+  - Module B needs labelled phishing vs legitimate URLs.
+  - Module C needs labelled scam text with a behavioural signature taxonomy.
+- **Decision (as originally recorded)**:
+  - Module A: a synthetic dataset with documented APP-fraud assumptions.
+  - Module B: a real dataset supplied by the project owner.
+  - Module C: a two-stage pipeline — a binary scam detector over an SMS spam corpus, then a signature classifier or rules-augmented layer to separate `fear_authority` from `greed_opportunity`.
+- **Superseded by**:
+  - Module A no longer generates a synthetic substitute. Authorized IEEE-CIS source data is required and its absence is reported explicitly (ADR-006).
+  - Module C is a single ten-class intent model evaluated with grouped cross-validation, not a two-stage pipeline, because the two-stage split leaked the signature task into the detector.
+- **Consequences**: Dataset provenance is now explicit per module, and no stage invents data.
 
 ---
 
-## ADR-003: Module A Telemetry Feature Engineering Strategy (`timestamp` & `device_id`)
+## ADR-003: Module A Telemetry Feature Engineering (`timestamp` & `device_id`)
 - **Date**: 2026-09-12
-- **Status**: Approved
+- **Status**: **Superseded by ADR-006**
 - **Context**:
-  - `timestamp` (ISO 8601 string) and `device_id` (string identifier) are raw telemetry fields provided in Module A transaction records.
-  - Feeding raw string `timestamp` or high-cardinality categorical `device_id` strings directly into gradient boosted trees causes severe overfitting or loss of temporal signals.
-- **Decision**:
-  - **`timestamp` Transformation**: Extracted `hour_of_day` (integer 0–23) and derived `is_odd_hour` (binary flag = 1 if hour < 6 or >= 23, representing late-night / off-peak fraud urgency windows).
-  - **`device_id` Transformation**: Processed into `is_new_device` (binary flag = 1 if the device transaction count in history <= 2, representing unrecognised or newly associated devices).
-- **Consequences**: Captures key temporal and device-switching risk signals without overfitting tree splits to specific string IDs or exact timestamps.
+  - `timestamp` (ISO 8601) and `device_id` (string) are raw fields provided in Module A records.
+  - Feeding raw strings directly into gradient-boosted trees causes overfitting or loss of temporal signal.
+- **Decision (as originally recorded)**:
+  - `timestamp` → `hour_of_day` (0–23) and `is_odd_hour` (< 6 or >= 23).
+  - `device_id` → `is_new_device` (historical count <= 2).
+- **Why it was reversed**:
+  - `TransactionDT` is a *relative* dataset phase, not local clock time; `hour_of_day` therefore meant something different at training and at serving.
+  - IEEE-CIS establishes no device history, so `device_counts` was empty and every API caller became "new device".
+  - No observed relationship links call state or device novelty to card fraud, and the synthetic
+    stand-ins were conditioned on the label.
+- **Consequences**: All five features were removed. Only `amount` survives, in the explicit source
+  unit, and the removed-feature explanation templates are gone.
 
 ---
 
 ## ADR-004: Module B URL Safety Scoring Weights & Page Inspection Strategy
 - **Date**: 2026-09-12
-- **Status**: Approved
+- **Status**: Amended (live fetching withdrawn)
 - **Context**:
   - URL safety evaluation requires combining structural string analysis with target destination signals.
-  - Phishing attacks frequently rely on IP hosting, brand typosquatting, unencrypted HTTP, obfuscated redirects, and fraudulent login forms.
+  - Phishing attacks rely on IP hosting, brand typosquatting, unencrypted HTTP and obfuscated redirects.
 - **Decision**:
-  - **Option (a) Lightweight Live Page Fetching**: Added a 2.0-second timeout HTTP inspect step to follow redirects and check destination HTML for login forms (`<form>`, `type="password"`). If connection times out or fails, gracefully falls back to URL string rules without crashing.
-  - **Named Rule Weight Constants**:
+  - **Live page fetching was withdrawn.** Fetching a user-supplied URL from the server is an SSRF
+    vector (link-local metadata endpoints, internal hosts) and makes responses non-deterministic.
+    `inspect_live_page()` remains as a no-network compatibility stub that performs no I/O and
+    contributes **no** score weight; `WEIGHT_LOGIN_FORM_PRESENT` and the login-form branch were
+    deleted because they were unreachable.
+  - **Named rule weight constants** in `ml/predict_module_b.py`:
     - `WEIGHT_IP_ADDRESS = 0.40`
     - `WEIGHT_TYPOSQUATTING = 0.35`
-    - `WEIGHT_LOGIN_FORM_PRESENT = 0.25`
     - `WEIGHT_INSECURE_HTTP = 0.20`
     - `WEIGHT_SUSPICIOUS_TLD = 0.20`
     - `WEIGHT_URL_OBFUSCATION = 0.15`
     - `WEIGHT_SUSPICIOUS_LENGTH = 0.10`
-  - **Score Combination**: Cumulative rule risk capped at 1.0 (`min(1.0, sum(active_weights))`). When the ML model is trained, `final_score = 0.50 * rule_score + 0.50 * ml_score`.
-- **Consequences**: Provides deterministic, explainable risk flags with transparent weight caps, supplemented by live destination analysis when reachable.
-
+  - **Score combination**: cumulative rule risk capped at 1.0 (`min(1.0, sum(active_weights))`);
+    when the classifier is available, `final_score = 0.50 * rule_score + 0.50 * ml_score`.
+- **Consequences**: Deterministic, explainable, egress-free risk flags. Redirect chains, page content
+  and security headers are **not** inspected — a real, documented capability gap.
 
 ---
 
-## ADR-005: Module D Unified Scoring Weights, Tiers & SHAP Explanation Strategy
+## ADR-005: Module D Unified Scoring, Tiers & Explanation Strategy
+- **Date**: 2026-09-12
+- **Status**: Amended (v2 interaction policy)
+- **Context**:
+  - Module D must fuse heterogeneous module scores into one tier without letting a skipped module dilute or inflate the result, and must explain *why* in plain language.
+  - SHAP must ground the explanation in the actual models where feasible, with honest fallbacks otherwise.
+- **Decision (v1, still the fallback)**:
+  - **Named weight constants** in `ml/predict_module_d.py`: `WEIGHT_MODULE_A = 0.45`,
+    `WEIGHT_MODULE_C = 0.30`, `WEIGHT_MODULE_B = 0.25`, renormalized over contributing modules only;
+    all-`None` raises `ValueError` instead of returning a false verdict.
+  - **Named tier thresholds**: `TIER_LOW_MAX = 0.25`, `TIER_MEDIUM_MAX = 0.50`,
+    `TIER_HIGH_MAX = 0.75`.
+- **Decision (v2, current serving contract)**:
+  - Fourteen features in `ml/features_module_d.py` add `a_present` / `b_present` / `c_present`,
+    `call_known`, `credential_request`, `authority_fear`, and four presence-gated interactions
+    (`message_transaction`, `call_transaction`, `url_credentials`, `authority_transaction`).
+    A missing channel is modelled as absent, never as zero risk.
+  - Explanations report exact coefficient products (mathematically the linear-SHAP attribution
+    against a zero reference) and state that interactions are not independent causal effects.
+- **Consequences**: A shared URL folded into Module C is not counted twice, and unknown call state is
+  distinguishable from "no call".
+
+---
+
+## ADR-006: Module A is an amount-only source-unit benchmark
 - **Date**: 2026-09-12
 - **Status**: Approved
 - **Context**:
-  - Module D must fuse heterogeneous module scores (transaction+call, URL, message) into one tier without letting a skipped module dilute or inflate the result, and must explain *why* in plain language (the project's core thesis).
-  - SHAP must ground the explanation in the actual models where feasible, with honest fallbacks where it is not (Module C is rules-only until its dataset arrives; SHAP library may be absent).
+  - Module A's original features did not mean the same thing at training and at serving, and its
+    synthetic telemetry was label-conditioned (see ADR-003).
+  - There is no verified currency mapping from IEEE-CIS source units to INR, and no dataset links
+    call state to authorised-payment fraud.
 - **Decision**:
-  - **Named weight constants** in `ml/predict_module_d.py`: `WEIGHT_MODULE_A = 0.45` (core thesis signal), `WEIGHT_MODULE_C = 0.30` (manipulation language), `WEIGHT_MODULE_B = 0.25` (narrowest; often already folded into C). Weights renormalize over contributing modules only; all-None raises `ValueError` instead of returning a false verdict.
-  - **Named tier thresholds**: `TIER_LOW_MAX = 0.25`, `TIER_MEDIUM_MAX = 0.50`, `TIER_HIGH_MAX = 0.75` (>= 0.75 -> Critical).
-  - **SHAP**: Module A uses `shap.TreeExplainer` on the XGBoost model (top positive contributors only, value-aware templates); Module C uses exact linear-SHAP token attribution (coef x TF-IDF, mathematically equal to SHAP for a linear model) when an ML artifact + input text are present, else keyword evidence. Headline takes one factor per risky module round-robin (max 3) so no module crowds out the others; URL reasons severity-ranked (IP/typosquatting first).
-  - **Honesty rule**: explanation always lists contributing vs. skipped modules; skipped modules are never implied to have run.
-- **Consequences**: Deterministic, tunable fusion with model-grounded explanations; graceful degradation to rule reasons when SHAP/ML artifacts are unavailable.
+  - Retain XGBoost as a **one-feature benchmark** over `amount` in the original IEEE-CIS source
+    unit. `FEATURE_CONTRACT` in `ml/features_module_a.py` is versioned and enforced by
+    `validate_artifact()`; legacy six-feature artifacts are rejected outright.
+  - `/check-transaction` requires an explicit `amount_unit: "ieee_cis_source"`. Omitting it leaves
+    the `INR` default and returns 422 rather than silently relabelling a rupee amount.
+  - Transaction-bearing `/check-combined` requests return 422, and `compute_unified_score()` refuses
+    transaction-context dictionaries outright. The Module D policy was fitted on a different A
+    distribution, so substituting v2 would be another train/inference mismatch.
+  - Missing, corrupt or legacy artifacts produce 503, never a default safe score. Legacy
+    `timestamp`, `device_id`, `is_active_call` and `transaction_velocity` fields are still validated
+    for shape, but are documented as metadata and are never model features.
+- **Consequences**: The project cannot score real transfers and says so. Restoring INR assessment
+  requires labelled data with justified units and features; restoring transaction fusion requires
+  compatible retraining and evaluation of Module D.
 
+---
 
-
+## ADR-007: Versioned v1 API alongside frozen legacy routes
+- **Date**: 2026-10-01
+- **Status**: Approved
+- **Context**:
+  - The API must eventually serve a mobile client reliably: JSON end to end (no multipart for
+    text), stable machine-readable error codes, correlation IDs, readiness reporting, and
+    documented limits.
+  - The web portal, the Android companion drafts and the existing suite depend on the flat
+    `/check-*` bodies and `{"detail": …}` errors; changing them would break clients for no
+    behavioural gain.
+- **Decision**:
+  - Add `/api/v1/*` with success/error envelopes, a shared service layer, and the legacy routes
+    kept as thin adapters that preserve byte-identical bodies. New behaviour goes to v1 only;
+    legacy routes are frozen, not extended.
+  - Standardise the failure surface in `backend/app/errors.py` (append-only codes), enforce
+    response shapes with `response_model`, verify uploads by magic bytes rather than declared
+    MIME, bound every read, offload every blocking call, and report readiness per component with
+    explicit degraded/not-ready semantics.
+  - Start the server with one command, `python -m backend` (`backend/__main__.py`); configure
+    CORS, logging and all limits through `TRUEINTENT_*` environment variables.
+- **Consequences**: Two presentations of the same logic, but a single source of every decision —
+    the service layer. A future mobile client integrates against `docs/API_V1.md` without touching
+    the portal contract.

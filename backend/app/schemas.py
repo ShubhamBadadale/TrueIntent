@@ -31,6 +31,15 @@ class CallTelemetry(BaseModel):
 
 
 class TransactionCheckRequest(BaseModel):
+    """Amount-only IEEE-CIS benchmark request.
+
+    `amount_unit` must be the explicit source unit; anything else (including
+    the `INR` default) is refused downstream with 422. Every field other than
+    `amount`/`amount_unit` is accepted legacy metadata: validated for shape and
+    echoed back for caller compatibility, never used as a model feature and
+    never reported as transaction-fusion evidence.
+    """
+
     amount: float = Field(..., ge=0, allow_inf_nan=False, description="Nonnegative benchmark amount")
     amount_unit: Literal['INR', 'ieee_cis_source'] = Field(
         default='INR', description='INR is unsupported; source-unit benchmark use must be explicit'
@@ -77,8 +86,6 @@ class TransactionCheckRequest(BaseModel):
         if v is None:
             return v
         candidate = v.strip().replace("Z", "+00:00")
-        from datetime import datetime
-
         try:
             datetime.fromisoformat(candidate)
         except ValueError:
@@ -130,6 +137,7 @@ class MessageCheckResponse(BaseModel):
     intent: Optional[str] = None
     intent_probabilities: dict[str, float] = Field(default_factory=dict)
     rule_evidence: list[dict] = Field(default_factory=list)
+    heuristic_evidence: list[dict] = Field(default_factory=list)
     text_assessed: bool = False
 
 
@@ -137,6 +145,13 @@ class MessageCheckResponse(BaseModel):
 # Module D — Combined (any subset of the above)
 # -----------------------------------------------------------------------------
 class CombinedRequest(BaseModel):
+    """URL and/or message evidence, optionally with a user-reported call state.
+
+    `transaction` is retained only so a transaction-bearing request is refused
+    with an explicit 422 explaining that Module A is benchmark-only; it can
+    never contribute to fusion.
+    """
+
     active_call: Optional[bool] = Field(default=None, strict=True, description='User-reported status; omitted means unknown')
     transaction: Optional[TransactionCheckRequest] = None
     url: Optional[str] = Field(default=None, max_length=8192)
@@ -156,7 +171,16 @@ class CombinedRequest(BaseModel):
 
 class CombinedResponse(BaseModel):
     tier: Literal["Low", "Medium", "High", "Critical"]
+    risk_level: Literal["Low", "Medium", "High", "Critical"] = "Low"
     score: float = Field(..., ge=0.0, le=1.0)
     explanation: str
+    analyzed_modules: list[str] = Field(default_factory=list)
+    contributing_modules: list[str] = Field(default_factory=list)
+    unavailable_modules: list[str] = Field(default_factory=list)
+    evidence: list[dict] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
+    fusion_version: str = ""
+    limitations: list[str] = Field(default_factory=list)
+    recommended_action: str = ""
     details: dict = Field(default_factory=dict)
     modules: dict = Field(default_factory=dict)

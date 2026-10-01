@@ -1,44 +1,77 @@
 """
-Module D — Unified Risk Scoring & Explanation Layer (core differentiator).
+Module D — Unified Risk Scoring & Explanation Layer (central fusion layer).
 
-Combines Module A (transaction+call), Module B (URL safety) and Module C
-(message/screenshot analysis) into one explainable verdict:
-
-    compute_unified_score(module_a_result, module_b_result, module_c_result)
-        -> {tier, score, explanation, details}
+Fuses Module B (URL safety) and Module C (message analysis) evidence into one
+deterministic, explainable verdict. Module A is an amount-only IEEE-CIS
+benchmark and is NOT a fusion input (see MODULE_A_FUSION_ENABLED).
 
 Design notes
 ------------
-* Transaction-context fusion is disabled after Module A's source-unit benchmark
-  correction. Numeric scores remain supported for policy experiments; the A SHAP
-  helper is available only for offline benchmark explanation.
-* Version 2 uses availability flags and score/tactic/call interactions. C text
-  and URL evidence are separated when metadata is available. Old three-score
-  artifacts remain readable. Models learn synthetic policy labels. Fixed weighted sum
-  ONLY when the artifact is missing (warning logged), renormalized over modules
-  that actually ran. Original fallback weights are A=.45, B=.25, C=.30.
-* SHAP: Module A uses shap.TreeExplainer on the XGBoost model; Module C (only
-  when an ML artifact exists AND the caller passes the analyzed `text`) uses
-  exact linear-SHAP token attribution (coef x TF-IDF vs. a zero baseline —
-  mathematically equal to SHAP values for a linear model). Everything
+* Every module result is first normalized with :func:`standardize_module_result`
+  into ``{module, assessed, score, confidence, risk_level, evidence,
+  model_version, abstention_reason}``. Unavailable modules keep
+  ``score=None`` — missing information is never scored as zero.
+* The overall result is an uncalibrated **risk score** (never called a fraud
+  probability) with a risk level, analyzed/contributing/unavailable module
+  lists, evidence, warnings, fusion version, limitations and a recommended
+  action. Legacy keys (``tier``, ``explanation``, ``details``) are preserved.
+* Scoring is deterministic for identical inputs: a transparent weighted
+  average (renormalized over assessed modules) when no learned artifact is
+  present, otherwise the versioned interaction policy. No randomness, no
+  clock, no network.
+* Skipped modules are ALWAYS reported — never implied to have run. No
+  assessed module raises ValueError instead of returning a false verdict.
+* SHAP: Module C (only when an ML artifact exists AND the caller passes the
+  analyzed `text`) uses exact linear-SHAP token attribution. Everything
   degrades gracefully to rule/keyword reasons when SHAP is unavailable.
-* Skipped modules (None) are ALWAYS reported as skipped — never implied to
-  have run. All-None raises ValueError instead of returning a false verdict.
 """
 
 import os
 import re
+import sys
 import logging
 import math
 import joblib
 import numpy as np
 import pandas as pd
 
+_ROOT = str(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+if _ROOT not in sys.path:
+    sys.path.insert(0, _ROOT)
+
+from ml.features_module_d import (
+    ABSTENTION_REASONS,
+    ACTIVE_MODULES,
+    FEATURES as _FEATURES_D,
+    FUSION_VERSION,
+    LIMITATIONS,
+    MODULE_WEIGHTS,
+    RISK_LEVELS,
+    RISK_THRESHOLDS,
+    RISKY_MODULE_SCORE,
+    SUPPORTED_MODULES,
+    feature_row,
+    recommend_action,
+    risk_level_for,
+    score as _score_d,
+)
+
 _LOGGER = logging.getLogger(__name__)
 _D_CACHE = None
 
+
+class ModuleDUnavailableError(ValueError):
+    """The learned artifact exists but cannot be trusted: it is corrupt,
+    unreadable, or incompatible with the current feature contract.
+
+    A ``ValueError`` subclass so existing guards keep working; the serving
+    layer maps it to 503 rather than falling back silently or 500ing.
+    """
+
+
 def _get_model_path():
     return os.path.join(os.path.dirname(__file__), "models", "module_d.pkl")
+
 
 def _load_learned_model():
     global _D_CACHE
@@ -46,46 +79,68 @@ def _load_learned_model():
     if not os.path.exists(path):
         _LOGGER.warning("Module D learned model missing; using fixed-weight fallback: %s", path)
         return None
-    stamp = (path, os.stat(path).st_mtime_ns, os.stat(path).st_size)
-    if _D_CACHE is None or _D_CACHE[0] != stamp:
+    stat = os.stat(path)
+    stamp = (path, stat.st_mtime_ns, stat.st_size)
+    if _D_CACHE is not None and _D_CACHE[0] == stamp:
+        return _D_CACHE[1]
+    try:
         artifact = joblib.load(path)  # Corruption/incompatibility must NOT silently fall back.
-        if artifact.get('format_version') == 2:
-            from ml.features_module_d import FEATURES
-            model = artifact.get('model')
-            if (artifact.get('feature_cols') != FEATURES or model is None
-                    or list(model.classes_) != [0, 1] or model.coef_.shape != (1, len(FEATURES))
-                    or not np.isfinite(model.coef_).all() or not np.isfinite(model.intercept_).all()):
-                raise ValueError('Incompatible Module D interaction artifact')
-            _D_CACHE = (stamp, artifact)
-            return artifact
-        expected = ["module_a_score", "module_b_score", "module_c_score"]
-        if artifact.get("feature_cols") != expected or list(artifact["model"].classes_) != [0, 1]:
-            raise ValueError("Incompatible Module D model artifact")
-        if (not np.isfinite(artifact["model"].coef_).all()
-                or not np.isfinite(artifact["model"].intercept_).all()
-                or artifact["model"].coef_.shape != (1, 3)):
-            raise ValueError("Non-finite Module D coefficients")
+    except Exception as exc:
+        raise ModuleDUnavailableError(
+            'Incompatible or unreadable Module D model artifact.'
+        ) from exc
+    if not isinstance(artifact, dict):
+        raise ModuleDUnavailableError('Incompatible Module D model artifact.')
+    if artifact.get('format_version') == 2:
+        FEATURES = _FEATURES_D
+        model = artifact.get('model')
+        if (artifact.get('feature_cols') != FEATURES or model is None
+                or list(model.classes_) != [0, 1] or model.coef_.shape != (1, len(FEATURES))
+                or not np.isfinite(model.coef_).all() or not np.isfinite(model.intercept_).all()):
+            raise ModuleDUnavailableError('Incompatible Module D interaction artifact')
         _D_CACHE = (stamp, artifact)
+        return artifact
+    expected = ["module_a_score", "module_b_score", "module_c_score"]
+    model = artifact.get('model')
+    if (artifact.get("feature_cols") != expected or model is None
+            or list(model.classes_) != [0, 1]):
+        raise ModuleDUnavailableError("Incompatible Module D model artifact")
+    if (not np.isfinite(model.coef_).all()
+            or not np.isfinite(model.intercept_).all()
+            or model.coef_.shape != (1, 3)):
+        raise ModuleDUnavailableError("Non-finite Module D coefficients")
+    _D_CACHE = (stamp, artifact)
     return _D_CACHE[1]
 
 # -----------------------------------------------------------------------------
-# NAMED WEIGHT CONSTANTS (documented, tunable — not a black box)
+# Central fusion constants (imported — the values live in features_module_d).
+# Aliases below exist so existing imports keep working.
 # -----------------------------------------------------------------------------
-WEIGHT_MODULE_A = 0.45  # transaction + active-call correlation (core thesis)
-WEIGHT_MODULE_C = 0.30  # message psychology / behavioral signature
-WEIGHT_MODULE_B = 0.25  # URL safety (narrowest; often already folded into C)
+WEIGHT_MODULE_A = MODULE_WEIGHTS['module_a']  # reserved; not a fusion input
+WEIGHT_MODULE_C = MODULE_WEIGHTS['module_c']  # message analysis (text score)
+WEIGHT_MODULE_B = MODULE_WEIGHTS['module_b']  # URL safety
 
 # -----------------------------------------------------------------------------
-# NAMED TIER THRESHOLDS (unified score -> tier)
+# Risk-level thresholds live in features_module_d.RISK_THRESHOLDS. Aliases kept.
 # -----------------------------------------------------------------------------
-TIER_LOW_MAX = 0.25
-TIER_MEDIUM_MAX = 0.50
-TIER_HIGH_MAX = 0.75  # >= this -> Critical
+TIER_LOW_MAX = RISK_THRESHOLDS['low_max']
+TIER_MEDIUM_MAX = RISK_THRESHOLDS['medium_max']
+TIER_HIGH_MAX = RISK_THRESHOLDS['high_max']  # >= this -> Critical
 
-VALID_TIERS = ("Low", "Medium", "High", "Critical")
+VALID_TIERS = RISK_LEVELS
 
-# A module scoring at/above this counts as "risky" (headline factor + wording).
-RISKY_MODULE_SCORE = 0.40
+# Set True only by a future validated Module A integration. While False, any
+# assessment-like Module A input is refused (never silently fused).
+MODULE_A_FUSION_ENABLED = False
+
+#: Refusal raised for any Module A fusion attempt (transaction context,
+#: benchmark scope, or standardized module_a assessment).
+MODULE_A_FUSION_MESSAGE = (
+    "Transaction fusion is disabled: Module A is a source-unit benchmark, "
+    "incompatible with the existing combined policy."
+)
+
+# A module scoring at/above RISKY_MODULE_SCORE counts as "risky" for headlines.
 
 _SIGNATURE_PHRASES = {
     "fear_authority": "message contains urgency and authority-impersonation language",
@@ -118,13 +173,173 @@ def _extract_score(result) -> float | None:
 
 
 def _tier_for(score: float) -> str:
-    if score < TIER_LOW_MAX:
-        return "Low"
-    if score < TIER_MEDIUM_MAX:
-        return "Medium"
-    if score < TIER_HIGH_MAX:
-        return "High"
-    return "Critical"
+    """Legacy alias of the central risk-level mapping (kept for compatibility)."""
+    return risk_level_for(score)
+
+
+def _refuse_module_a_input(result) -> None:
+    """Raise for any assessment-like Module A input (never silently fuse)."""
+    raise ValueError(MODULE_A_FUSION_MESSAGE)
+
+
+def _is_standardized_module_dict(result) -> bool:
+    return (
+        isinstance(result, dict)
+        and result.get('module') in SUPPORTED_MODULES
+        and 'assessed' in result
+    )
+
+
+def _validate_finite_score(value, *, what: str = 'Module score') -> float:
+    if isinstance(value, bool):
+        raise TypeError(f'{what} must be a score float or dict, not bool.')
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        raise ValueError(f'{what} must be finite and between zero and one') from None
+    if not math.isfinite(number) or not 0 <= number <= 1:
+        raise ValueError(f'{what} must be finite and between zero and one')
+    return number
+
+
+def _unassessed(module_name: str, reason: str) -> dict:
+    if reason not in ABSTENTION_REASONS:
+        raise ValueError(f'Unknown abstention reason: {reason!r}')
+    return {
+        'module': module_name,
+        'assessed': False,
+        'score': None,
+        'confidence': None,
+        'risk_level': None,
+        'evidence': [],
+        'model_version': 'unknown',
+        'abstention_reason': reason,
+    }
+
+
+def _assessed(module_name: str, score_value, evidence, model_version) -> dict:
+    number = _validate_finite_score(score_value, what=f'{module_name} score')
+    return {
+        'module': module_name,
+        'assessed': True,
+        'score': round(number, 4),
+        'confidence': None,  # explicitly uncalibrated; never a fraud probability
+        'risk_level': risk_level_for(number),
+        'evidence': [str(item) for item in (evidence or []) if str(item).strip()],
+        'model_version': str(model_version or 'unknown'),
+        'abstention_reason': None,
+    }
+
+
+def standardize_module_result(module_name: str, result) -> dict:
+    """Normalize any module output to the standard module-result contract.
+
+    Returns ``{module, assessed, score, confidence, risk_level, evidence,
+    model_version, abstention_reason}``. ``score`` is ``None`` (never zero)
+    whenever ``assessed`` is ``False``. Raises ``TypeError``/``ValueError``
+    on invalid inputs. Module A assessment-like inputs are refused: the
+    benchmark is not a fusion input until a validated integration enables it.
+    """
+    if module_name not in SUPPORTED_MODULES:
+        raise ValueError(
+            f'Unknown module {module_name!r}; expected one of {list(SUPPORTED_MODULES)}.'
+        )
+    if result is None:
+        reason = 'unsupported' if module_name == 'module_a' else 'not_provided'
+        return _unassessed(module_name, reason)
+    if isinstance(result, bool):
+        raise TypeError(f'Module result must be a score float or dict, not bool.')
+    if isinstance(result, (int, float)):
+        if module_name == 'module_a' and not MODULE_A_FUSION_ENABLED:
+            # Legacy bare-number policy experiments only; no validated model.
+            number = _validate_finite_score(result, what='module_a score')
+            return _assessed(module_name, number, [], 'policy_experiment')
+        if module_name == 'module_a':
+            _refuse_module_a_input(result)
+        return _assessed(module_name, result, [], 'numeric_score')
+    if _is_standardized_module_dict(result):
+        if result.get('module') != module_name:
+            raise ValueError(
+                f"Module mismatch: expected {module_name!r}, got {result.get('module')!r}."
+            )
+        if result.get('assessed'):
+            if module_name == 'module_a' and not MODULE_A_FUSION_ENABLED:
+                _refuse_module_a_input(result)
+            return _assessed(module_name, result.get('score'),
+                             result.get('evidence', []),
+                             result.get('model_version'))
+        reason = result.get('abstention_reason') or (
+            'unsupported' if module_name == 'module_a' else 'not_provided')
+        if reason not in ABSTENTION_REASONS:
+            raise ValueError(f'Unknown abstention reason: {reason!r}')
+        return _unassessed(module_name, reason)
+    if not isinstance(result, dict):
+        raise TypeError(
+            'Module result must be None, a score float, or a dict with a '
+            f"'score' key — got {type(result).__name__}."
+        )
+    if module_name == 'module_a':
+        # Transaction contexts, benchmark scopes and any other Module A dict
+        # are incompatible with fusion; bare numbers above stay available for
+        # legacy policy experiments only.
+        _refuse_module_a_input(result)
+    if module_name == 'module_b':
+        return _standardize_url_result(result)
+    return _standardize_message_result(result)
+
+
+def _standardize_url_result(result: dict) -> dict:
+    if 'score' not in result:
+        raise ValueError(f"Module result dict must contain a 'score' key: {result}")
+    number = _validate_finite_score(result['score'], what='module_b score')
+    reasons = result.get('reasons', []) or []
+    if not isinstance(reasons, list):
+        raise ValueError('Module B reasons must be a list of strings')
+    model_version = result.get('model_version') or result.get('ml_status') or 'unknown'
+    return _assessed('module_b', number, [str(r) for r in reasons], model_version)
+
+
+def _standardize_message_result(result: dict) -> dict:
+    if result.get('text_assessed') is False:
+        status = str(result.get('ml_status', ''))
+        reason = 'assessment_failed' if 'inference failed' in status else 'model_unavailable'
+        out = _unassessed('module_c', reason)
+        out['model_version'] = str(result.get('model_version') or status or 'unknown')
+        return out
+    if 'score' not in result:
+        raise ValueError(f"Module result dict must contain a 'score' key: {result}")
+    # Text score only: an embedded-URL fold must never masquerade as text risk.
+    # The URL component is fused once via Module B / embedded_url_score.
+    if result.get('text_score') is not None:
+        number = _validate_finite_score(result['text_score'], what='module_c score')
+    else:
+        number = _validate_finite_score(result['score'], what='module_c score')
+    return _assessed('module_c', number, _message_evidence(result),
+                     result.get('model_version') or result.get('ml_status') or 'unknown')
+
+
+def _message_evidence(result: dict) -> list:
+    """Deterministic, deduplicated Module C evidence (heuristics + rules)."""
+    findings = []
+    for item in result.get('heuristic_evidence', []) or []:
+        if not isinstance(item, dict):
+            continue
+        category = item.get('category', 'signal')
+        matched = str(item.get('matched', '')).strip()[:120]
+        if matched and matched not in [f.rsplit(': ', 1)[-1] for f in findings]:
+            findings.append(f'Heuristic [{category}]: {matched}')
+    for item in result.get('rule_evidence', []) or []:
+        if isinstance(item, dict) and item.get('phrase'):
+            findings.append(f"Rule evidence: {item['phrase']}")
+    embedded = result.get('embedded_url_score')
+    try:
+        embedded_value = float(embedded) if embedded is not None else 0.0
+    except (TypeError, ValueError):
+        embedded_value = 0.0
+    if embedded_value >= 0.4:
+        findings.append(f'Embedded URL risk score {embedded_value:.2f}')
+    # Deduplicate while preserving first-seen order (deterministic).
+    return list(dict.fromkeys(findings))
 
 
 # -----------------------------------------------------------------------------
@@ -153,24 +368,16 @@ def _shap_factors_module_a(module_a_result) -> tuple[list, str]:
     try:
         from ml.predict_module_a import load_model
     except ImportError:
-        try:
-            from predict_module_a import load_model
-        except ImportError:
-            return [], "module_a_loader_unavailable"
+        return [], "module_a_loader_unavailable"
     try:
         artifact = load_model()
         model = artifact["model"]
         values = _build_module_a_features(transaction, artifact)
         feature_names = list(values.keys())
-        import pandas as pd
-
-        X = pd.DataFrame([values])[feature_names]
         import shap
 
         explainer = shap.TreeExplainer(model)
-        sv = explainer.shap_values(X)
-        import numpy as np
-
+        sv = explainer.shap_values(pd.DataFrame([values])[feature_names])
         row = np.asarray(sv).reshape(-1)
         ranked = sorted(
             zip(feature_names, row, [values[f] for f in feature_names]),
@@ -197,18 +404,38 @@ def _shap_factors_module_a(module_a_result) -> tuple[list, str]:
 # -----------------------------------------------------------------------------
 def _shorten_url_reason(reason: str) -> str:
     r = reason.lower()
-    if "raw ip address" in r:
+    if "raw ip" in r and "address" in r:
         return "link uses a raw IP address instead of a registered domain"
+    if "localhost/private/internal" in r or "private/internal" in r:
+        return "link targets a localhost/private/internal address"
     if "typosquatting" in r or "spoofing" in r:
         return "link mimics a known brand domain"
+    if "look-alike" in r or "look-alike" in r:
+        return "link shows look-alike domain indicators"
+    if "shortener" in r:
+        return "link hides its destination behind a URL shortener"
+    if "punycode" in r or "internationalized" in r:
+        return "link uses an internationalized (punycode) hostname"
+    if "malformed hostname" in r:
+        return "link hostname is malformed"
+    if "unusual port" in r:
+        return "link uses an unusual port"
+    if "excessive subdomains" in r:
+        return "link buries its domain under excessive subdomains"
     if "form" in r and ("login" in r or "credential" in r):
         return "destination page contains a login/credential form"
     if "high-risk top-level" in r:
         return "link uses a high-risk domain ending"
     if "redirect" in r:
         return "link redirects to a different site"
+    if "suspicious path/query" in r or "suspicious encoded" in r:
+        return "link path/query contains phishing patterns"
+    if "entropy" in r:
+        return "link looks randomly generated (high entropy)"
     if "insecure protocol" in r or "https" in r:
         return "link does not use an encrypted HTTPS connection"
+    if "extremely long" in r:
+        return "extremely long, likely obfuscated link"
     if "long" in r:
         return "unusually long link"
     if "'@'" in r or "hex-encoded" in r or "hyphen" in r:
@@ -220,11 +447,13 @@ def _shorten_url_reason(reason: str) -> str:
 def _url_reason_severity(reason: str) -> int:
     """Lower = more incriminating (headline-worthy)."""
     r = reason.lower()
-    if "raw ip address" in r or "typosquatting" in r or "spoofing" in r:
+    if "raw ip" in r or "typosquatting" in r or "spoofing" in r:
         return 0
-    if "login" in r or "credential" in r or "redirect" in r:
+    if "localhost/private" in r or "private/internal" in r or "malformed hostname" in r or "shortener" in r:
+        return 0
+    if "login" in r or "credential" in r or "redirect" in r or "punycode" in r or "look-alike" in r:
         return 1
-    if "high-risk top-level" in r or "'@'" in r or "hex-encoded" in r or "hyphen" in r:
+    if "high-risk top-level" in r or "'@'" in r or "hex-encoded" in r or "hyphen" in r or "unusual port" in r or "subdomains" in r or "entropy" in r or "suspicious" in r:
         return 2
     return 3
 
@@ -250,10 +479,7 @@ def _factors_module_b(module_b_result) -> list:
 def _shap_tokens_module_c(text: str, signature: str, top_k: int = 3) -> tuple[list, str]:
     """Exact linear-SHAP (coef x TF-IDF) top tokens. ([tokens], method note)."""
     try:
-        try:
-            from ml.predict_module_c import _load_ml_model
-        except ImportError:
-            from predict_module_c import _load_ml_model
+        from ml.predict_module_c import _load_ml_model
         artifact = _load_ml_model()
         if artifact is None:
             return [], "no_ml_artifact"
@@ -263,8 +489,6 @@ def _shap_tokens_module_c(text: str, signature: str, top_k: int = 3) -> tuple[li
         classes = [str(c) for c in clf.classes_]
         target = signature if signature in classes else max(classes)
         row = tfidf.transform([text])
-        import numpy as np
-
         coefs = np.asarray(clf.coef_[classes.index(target)]).ravel()
         contrib = row.multiply(coefs).tocoo()
         scored = sorted(zip(contrib.col, contrib.data), key=lambda t: float(t[1]), reverse=True)
@@ -310,30 +534,56 @@ def _factors_module_c(module_c_result) -> tuple[list, str]:
 
 
 # -----------------------------------------------------------------------------
-# Unified scoring
+# Unified scoring (central TrueIntent fusion layer)
 # -----------------------------------------------------------------------------
+def _validate_active_call(active_call):
+    if active_call is not None and not isinstance(active_call, bool):
+        raise ValueError('active_call must be boolean or unknown (None)')
+    return active_call
+
+
+def _embedded_url_score(module_c_result) -> float:
+    """Embedded Module B evidence inside a Module C dict (0 when absent)."""
+    if not isinstance(module_c_result, dict):
+        return 0.0
+    try:
+        value = float(module_c_result.get('embedded_url_score') or 0.0)
+    except (TypeError, ValueError):
+        return 0.0
+    if not math.isfinite(value) or not 0 <= value <= 1:
+        return 0.0
+    return value
+
+
 def compute_unified_score(module_a_result=None, module_b_result=None,
                            module_c_result=None, *, active_call=None) -> dict:
     """
-    Combine per-module risk scores into one tier + plain-language explanation.
+    Fuse Module B (URL) and Module C (message) evidence into one verdict.
 
-    Parameters accept None (module skipped), a score float, or the module's
-    result dict. Transaction-context dictionaries are refused: Module A's new
-    benchmark must not feed the old transaction policy. Module C dictionaries
-    may include analyzed "text" for token attribution.
+    Parameters accept None (module skipped), a score float, a legacy module
+    result dict, or a standardized module-result dict. Module C dictionaries
+    may include analyzed "text" for token attribution. Any assessment-like
+    Module A input (transaction context, benchmark scope, standardized
+    ``module_a`` assessment) is refused: Module A is a source-unit benchmark,
+    incompatible with fusion. Bare-number Module A inputs remain available
+    for legacy policy experiments only.
 
-    Returns {tier, score, explanation, details}. Raises ValueError if no
-    module ran, TypeError/ValueError on malformed inputs.
+    Returns the overall risk score with risk level, analyzed / contributing /
+    unavailable modules, evidence, warnings, fusion version, limitations and
+    a recommended action (plus legacy ``tier``/``explanation``/``details``
+    keys). Raises ValueError if no module ran, TypeError/ValueError on
+    malformed inputs. Deterministic for identical inputs.
     """
-    if isinstance(module_a_result, dict) and (isinstance(module_a_result.get("transaction"), dict)
-                                             or module_a_result.get('analysis_scope') == 'ieee_cis_amount_only_benchmark'):
-        raise ValueError(
-            "Transaction fusion is disabled: Module A is a source-unit benchmark, "
-            "incompatible with the existing combined policy."
-        )
-    score_a = _extract_score(module_a_result)
-    score_b = _extract_score(module_b_result)
-    score_c = _extract_score(module_c_result)
+    _validate_active_call(active_call)
+    std_a = standardize_module_result('module_a', module_a_result)
+    std_b = standardize_module_result('module_b', module_b_result)
+    std_c = standardize_module_result('module_c', module_c_result)
+
+    score_a = std_a['score']
+    score_b = std_b['score']
+    # Text score only: shared URL evidence is fused once via Module B below.
+    score_c = std_c['score']
+    embedded = _embedded_url_score(module_c_result)
 
     contribs = []
     if score_a is not None:
@@ -356,18 +606,42 @@ def compute_unified_score(module_a_result=None, module_b_result=None,
 
     artifact = _load_learned_model()
     if artifact is not None and artifact.get('format_version') == 2:
-        return _interaction_result(artifact, module_a_result, module_b_result, module_c_result, active_call)
+        legacy = _interaction_result(artifact, module_a_result, module_b_result, module_c_result, active_call)
+        return _finalize_result(
+            unified=legacy['score'], explanation=legacy['explanation'],
+            details=legacy['details'], std_a=std_a, std_b=std_b, std_c=std_c,
+            active_call=active_call, embedded=_embedded_url_score(module_c_result),
+            method_note='learned interaction policy',
+            learned=True,
+        )
     names = ["module_a", "module_b", "module_c"]
-    supplied = [score_a, score_b, score_c]
+    # URL evidence counted once: an embedded Module B finding inside the message
+    # joins (never adds to) the standalone URL score via max.
+    b_effective = score_b
+    if embedded > 0 and (b_effective is None or embedded > b_effective):
+        b_effective = embedded
+    fused = {'module_a': score_a, 'module_b': b_effective, 'module_c': score_c}
     contributions = {}
-    if artifact is None:
-        total_w = sum(w for _, _, w in contribs)
-        unified = round(min(1.0, sum(s * w for _, s, w in contribs) / total_w), 4)
-        weights = dict(module_a=WEIGHT_MODULE_A, module_b=WEIGHT_MODULE_B, module_c=WEIGHT_MODULE_C)
-        fusion_method = "fixed_weights_missing_model"
-        intercept = None
-        ranked_contribs = contribs
-    else:
+    total_w = sum(
+        WEIGHT_MODULE_A if name == 'module_a'
+        else WEIGHT_MODULE_B if name == 'module_b'
+        else WEIGHT_MODULE_C
+        for name, value in (('module_a', score_a), ('module_b', b_effective), ('module_c', score_c))
+        if value is not None
+    )
+    unified = round(min(1.0, sum(
+        fused[name] * (WEIGHT_MODULE_A if name == 'module_a'
+                       else WEIGHT_MODULE_B if name == 'module_b'
+                       else WEIGHT_MODULE_C)
+        for name in names if fused[name] is not None
+    ) / total_w), 4)
+    weights = dict(module_a=WEIGHT_MODULE_A, module_b=WEIGHT_MODULE_B, module_c=WEIGHT_MODULE_C)
+    fusion_method = "fixed_weights_missing_model"
+    intercept = None
+    ranked_contribs = contribs
+    if artifact is not None:
+        # Legacy three-score learned artifact (research/test fixtures only).
+        supplied = [score_a, score_b, score_c]
         model = artifact["model"]
         values = [0.0 if v is None else v for v in supplied]
         frame = pd.DataFrame([values], columns=artifact["feature_cols"])
@@ -440,17 +714,17 @@ def compute_unified_score(module_a_result=None, module_b_result=None,
             )
         else:
             parts.append(
-                f"Flagged as {tier} risk (unified score {unified:.2f})."
+                f"Flagged as {tier} risk (unified risk score {unified:.2f})."
             )
     else:
         if headline:
             parts.append(
-                f"Assessed as {tier} risk (unified score {unified:.2f}): "
+                f"Assessed as {tier} risk (unified risk score {unified:.2f}): "
                 + "; ".join(headline) + "."
             )
         else:
             parts.append(
-                f"Assessed as {tier} risk (unified score {unified:.2f}): "
+                f"Assessed as {tier} risk (unified risk score {unified:.2f}): "
                 "no strong risk signals from the modules that ran."
             )
     parts.append("Modules contributing: " + ", ".join(ran) + ".")
@@ -459,39 +733,141 @@ def compute_unified_score(module_a_result=None, module_b_result=None,
     )
     explanation = " ".join(parts)
 
-    return {
-        "tier": tier,
-        "score": unified,
-        "explanation": explanation,
-        "details": {
-            "weights": weights,
-            "weight_semantics": "logistic coefficients (not normalized shares)" if artifact is not None else "fixed weights",
-            "scoring_method": fusion_method,
-            "intercept": intercept,
-            "module_contributions_log_odds": contributions,
-            "fusion_shap_method": "linear_zero_reference_log_odds" if artifact is not None else "not_applicable",
-            "model_caveat": "Synthetic joint labels; not calibrated real-world fraud probability" if artifact is not None else "Learned model file missing",
-            "renormalized_over": ran if artifact is None else [],
-            "module_scores": {
-                "module_a": score_a, "module_b": score_b, "module_c": score_c,
-            },
-            "shap_methods": shap_methods,
+    details = {
+        "weights": weights,
+        "weight_semantics": "logistic coefficients (not normalized shares)" if artifact is not None else "fixed weights",
+        "scoring_method": fusion_method,
+        "intercept": intercept,
+        "module_contributions_log_odds": contributions,
+        "fusion_shap_method": "linear_zero_reference_log_odds" if artifact is not None else "not_applicable",
+        "model_caveat": "Synthetic joint labels; not calibrated real-world fraud probability" if artifact is not None else "Learned model file missing",
+        "renormalized_over": ran if artifact is None else [],
+        "module_scores": {
+            "module_a": score_a, "module_b": score_b, "module_c": score_c,
         },
+        "shap_methods": shap_methods,
+        "fusion_version": FUSION_VERSION,
+        "risk_level": tier,
+    }
+    return _finalize_result(
+        unified=unified, explanation=explanation, details=details,
+        std_a=std_a, std_b=std_b, std_c=std_c, active_call=active_call,
+        embedded=embedded, method_note=fusion_method, learned=artifact is not None,
+    )
+
+
+def _build_evidence(std_b: dict, std_c: dict) -> list:
+    """Deterministic fused evidence: Module B findings then Module C findings."""
+    evidence = []
+    if std_b.get('assessed'):
+        for finding in std_b.get('evidence', []):
+            evidence.append({'module': 'module_b', 'finding': str(finding)})
+    if std_c.get('assessed'):
+        for finding in std_c.get('evidence', []):
+            evidence.append({'module': 'module_c', 'finding': str(finding)})
+    return evidence
+
+
+def _build_warnings(std_a: dict, std_b: dict, std_c: dict, *,
+                    active_call, embedded: float, learned: bool) -> list:
+    warnings = []
+    missing = [m['module'] for m in (std_b, std_c) if not m.get('assessed')]
+    if missing:
+        warnings.append(
+            'Partial analysis: '
+            + ', '.join(missing)
+            + ' did not provide an assessment; the overall risk score reflects only '
+            + 'the evidence that ran and is a lower bound on risk.'
+        )
+    warnings.append(
+        'Module A is a source-unit benchmark and is not fused; '
+        'submit URL and/or message evidence for combined analysis.'
+    )
+    if embedded > 0:
+        warnings.append(
+            'URL evidence shared between the message and the URL channel '
+            'was counted once (maximum).'
+        )
+    if active_call is True:
+        warnings.append(
+            'An active call was user-reported during this analysis; '
+            'call status is unverified and does not change the risk score.'
+        )
+    if learned:
+        warnings.append(
+            'Learned synthetic-policy fusion used; the overall score is an '
+            'uncalibrated risk score, not a calibrated fraud probability.'
+        )
+    else:
+        warnings.append(
+            'Transparent weighted risk-score fusion used (renormalized over '
+            'assessed modules); the overall score is uncalibrated.'
+        )
+    return warnings
+
+
+def _finalize_result(*, unified: float, explanation: str, details: dict,
+                     std_a: dict, std_b: dict, std_c: dict,
+                     active_call, embedded: float, method_note: str,
+                     learned: bool) -> dict:
+    """Attach the standard fusion contract to any scoring path's output."""
+    tier = risk_level_for(unified)
+    standards = {'module_a': std_a, 'module_b': std_b, 'module_c': std_c}
+    analyzed = [name for name, std in standards.items() if std.get('assessed')]
+    contributing = list(analyzed)  # every assessed module feeds the weights
+    unavailable = [name for name, std in standards.items() if not std.get('assessed')]
+    details = dict(details)
+    details['fusion_version'] = FUSION_VERSION
+    details['risk_level'] = tier
+    details['scoring_note'] = method_note
+    partial = any(not standards[m].get('assessed') for m in ('module_b', 'module_c'))
+    warnings = _build_warnings(std_a, std_b, std_c, active_call=active_call,
+                               embedded=embedded, learned=learned)
+    return {
+        'tier': tier,  # legacy alias of risk_level (kept for compatibility)
+        'risk_level': tier,
+        'score': unified,  # overall uncalibrated risk score, never a fraud probability
+        'explanation': explanation,
+        'analyzed_modules': analyzed,
+        'contributing_modules': contributing,
+        'unavailable_modules': unavailable,
+        'evidence': _build_evidence(std_b, std_c),
+        'warnings': warnings,
+        'fusion_version': FUSION_VERSION,
+        'limitations': list(LIMITATIONS),
+        'recommended_action': recommend_action(tier, partial=partial),
+        'details': details,
+        'modules': standards,
     }
 
 
+def fuse_modules(module_b_result=None, module_c_result=None,
+                 module_a_result=None, *, active_call=None) -> dict:
+    """Named fusion entry point: fuse Module B/C evidence (Module A refused).
+
+    Argument order puts the supported channels first; see
+    :func:`compute_unified_score` for semantics.
+    """
+    return compute_unified_score(module_a_result, module_b_result,
+                                 module_c_result, active_call=active_call)
+
+
 def _interaction_result(artifact, a_result, b_result, c_result, active_call):
-    from ml.features_module_d import FEATURES, feature_row, score
+    FEATURES = _FEATURES_D
     def read(value):
-        return score(value['score'] if isinstance(value, dict) else value)
+        return _score_d(value['score'] if isinstance(value, dict) else value)
     a, b, c = read(a_result), read(b_result), read(c_result)
     credential, authority = 0., 0.
     evidence_note = 'C text-only evidence unavailable; legacy combined C score may include a URL.'
     if isinstance(c_result, dict):
         if c_result.get('text_assessed') is False:
-            raise ValueError('Module C text was not assessed')
+            # Unassessed text stays missing (never fused as zero or as message
+            # evidence); an embedded URL finding still counts once via Module B.
+            c = None
+            evidence_note = ('Module C text was not assessed; fused from URL evidence only. '
+                             'URL evidence counted once using max.')
         probabilities = c_result.get('intent_probabilities') or {}
-        if 'text_score' in c_result:
+        if c_result.get('text_assessed') is not False and 'text_score' in c_result:
             c = c_result['text_score']
             evidence_note = 'C text and embedded URL scores separated; URL evidence counted once using max.'
         elif 'benign' in probabilities:

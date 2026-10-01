@@ -1,4 +1,9 @@
-"""Portable test fixtures. Invented rows stay in pytest's temporary directory."""
+"""Portable test fixtures. Invented rows stay in pytest's temporary directory.
+
+`backend` is imported as a package (`backend.app.main`) from the repo root so
+that the app is a single module identity. Importing it as a bare `app.main`
+would load a second copy with its own model caches.
+"""
 import importlib
 import json
 from pathlib import Path
@@ -8,8 +13,8 @@ import pandas as pd
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT))
-sys.path.insert(0, str(ROOT / 'backend'))
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 
 @pytest.fixture(scope='session')

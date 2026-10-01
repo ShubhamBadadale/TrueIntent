@@ -1,0 +1,29 @@
+{
+  "name": "trueintent-mobile",
+  "version": "0.1.0",
+  "private": true,
+  "description": "TrueIntent mobile client (React Native + Expo + TypeScript). Backend remains the source of truth.",
+  "main": "App.tsx",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "typecheck": "tsc --noEmit",
+    "test": "npm run typecheck && npm run test:unit",
+    "test:unit": "tsc -p tsconfig.tests.json && node --test .test-dist/__tests__/*.test.js"
+  },
+  "dependencies": {
+    "expo": "~53.0.0",
+    "expo-clipboard": "~7.1.4",
+    "expo-image-picker": "~16.1.4",
+    "expo-status-bar": "~2.2.3",
+    "react": "19.0.0",
+    "react-native": "0.79.2",
+    "react-native-safe-area-context": "5.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "22.10.2",
+    "@types/react": "19.0.0",
+    "typescript": "~5.8.2"
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "expo": {
+    "name": "TrueIntent",
+    "slug": "trueintent",
+    "version": "0.1.0",
+    "description": "Verify scam and phishing indicators before you act. Results are risk assessments, not guarantees.",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "TrueIntent needs gallery access so you can attach chat screenshots for analysis.",
+          "cameraPermission": "TrueIntent needs camera access so you can photograph a suspicious message for analysis."
+        }
+      ]
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.trueintent.mobile"
+    },
+    "android": {
+      "package": "com.trueintent.mobile",
+      "permissions": []
+    }
+  }
+}

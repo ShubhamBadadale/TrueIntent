@@ -11,16 +11,20 @@ Any URLs found in the message are extracted and passed to Module B's
 
 import os
 import re
+import sys
+from pathlib import Path
 
-try:
-    from ml.model_loading import load_artifact
-except ImportError:
-    from model_loading import load_artifact
+import numpy as np
 
-try:
-    from ml.predict_module_b import check_url
-except ImportError:  # fallback for direct script execution
-    from predict_module_b import check_url
+_ROOT = str(Path(__file__).resolve().parents[1])
+if _ROOT not in sys.path:
+    sys.path.insert(0, _ROOT)
+
+from ml.model_loading import load_artifact
+from ml.features_module_c import (
+    HEURISTIC_CATEGORIES, HEURISTIC_DEFINITIONS, INTENTS, normalize_text,
+)
+from ml.predict_module_b import check_url
 
 # -----------------------------------------------------------------------------
 # Historical keyword candidates, retained for measured ablations only.
@@ -90,18 +94,90 @@ def extract_urls(text: str) -> list:
     return list(dict.fromkeys(u.rstrip(".,;:!?)'\"") for u in found))
 
 
+def extract_heuristic_evidence(text: str) -> list:
+    """Offline heuristic evidence, deduplicated per signal.
+
+    Each entry has ``signal``, ``category``, ``description``, ``severity``
+    and ``matched`` evidence (a short matched phrase or truncated URL, never
+    the full message). Heuristics never affect the score and never fabricate
+    an ML probability; a missing ML model still returns this evidence with
+    ``text_assessed=False``.
+    """
+    if not text or not str(text).strip():
+        return []
+    raw = str(text)
+    normalized = normalize_text(raw)
+    findings = []
+    seen_signals = set()
+    for signal, category, description, severity, patterns in HEURISTIC_DEFINITIONS:
+        if signal in seen_signals:
+            continue
+        matched = None
+        for pattern in patterns:
+            try:
+                hit = re.search(pattern, normalized, flags=re.IGNORECASE)
+            except re.error:
+                continue
+            if hit:
+                matched = hit.group(0).strip()[:80]
+                break
+        if matched:
+            seen_signals.add(signal)
+            findings.append({
+                'signal': signal,
+                'category': category,
+                'description': description,
+                'severity': severity,
+                'matched': matched,
+                'affects_score': False,
+            })
+    # Suspicious-links heuristic: URL presence is evidence even when Module B
+    # scores it low; the URL score itself remains the only numeric signal.
+    urls = extract_urls(raw)
+    if urls and 'suspicious_link_present' not in seen_signals:
+        findings.append({
+            'signal': 'suspicious_link_present',
+            'category': 'suspicious_links',
+            'description': 'Message contains one or more links; verify destinations before acting.',
+            'severity': 'medium',
+            'matched': urls[0][:120],
+            'affects_score': False,
+        })
+    return findings
+
+
 def analyze_message(text: str, fetch_live_page: bool = False) -> dict:
-    """Separate ML intent predictions, keyword evidence and embedded URL evidence."""
-    import numpy as np
-    from ml.features_module_c import normalize_text, INTENTS
+    """Separate ML intent predictions, heuristic evidence and URL evidence.
+
+    ``score``/``intent``/``intent_probabilities`` come from the ML model only;
+    a missing or broken model leaves them at 0.0/None/{} with
+    ``text_assessed=False`` — never a fabricated probability. Heuristic
+    matches are returned separately in ``heuristic_evidence`` with
+    ``affects_score=False`` so callers can show them without implying an ML
+    verdict.
+    """
     text = '' if text is None else str(text).strip()
     artifact = _load_ml_model()
     result = dict(score=0.0, signature='none', reasons=[],
                   ml_status='not_run (empty text)' if not text else 'unavailable (text not assessed)',
-                  intent=None, intent_probabilities={}, rule_evidence=[], text_assessed=False)
+                  intent=None, intent_probabilities={}, rule_evidence=[],
+                  heuristic_evidence=[], text_assessed=False)
     if not text:
         result['reasons'] = ['Empty message text provided']
+        result['heuristic_evidence'] = []
+        result['text_score'] = None
+        result['embedded_url_score'] = 0.0
         return result
+    # Heuristics run with or without an ML artifact; they never imply assessment.
+    try:
+        result['heuristic_evidence'] = extract_heuristic_evidence(text)
+    except Exception:
+        result['heuristic_evidence'] = []
+    for finding in result['heuristic_evidence']:
+        result['reasons'].append(
+            f"Heuristic evidence [{finding['category']}]: '{finding['matched']}' "
+            f"({finding['description']} Does not affect score.)"
+        )
     if artifact is not None:
         try:
             is_v2 = artifact.get('mode') == 'intent-v2'

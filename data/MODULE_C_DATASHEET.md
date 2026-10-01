@@ -96,9 +96,9 @@ measure the classifier alone, not the runtime blend. Missing/failed artifacts re
 the keyword fallback. Status explicitly says `fear_authority unvalidated` when active.
 
 ```powershell
-.\backend\venv\Scripts\python.exe ml/generate_module_c_data.py
-.\backend\venv\Scripts\python.exe ml/train_module_c.py
-.\backend\venv\Scripts\python.exe -m pytest tests/test_module_c.py tests/test_module_c_classifier.py tests/test_module_c_ocr.py -q
+.\.venv\Scripts\python.exe ml/generate_module_c_data.py
+.\.venv\Scripts\python.exe ml/train_module_c.py
+.\.venv\Scripts\python.exe -m pytest tests/test_module_c.py tests/test_module_c_classifier.py tests/test_module_c_ocr.py -q
 ```
 
 Generator downloads source ZIPs if missing; cached ZIPs support offline reproduction.

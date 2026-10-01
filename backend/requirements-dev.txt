@@ -1,0 +1,9 @@
+# Test-only dependencies, installed on top of backend/requirements.txt.
+# Kept separate so the Docker runtime image does not carry the test toolchain.
+#
+#   .venv\Scripts\python.exe -m pip install -r backend\requirements.txt `
+#                                                -r backend\requirements-dev.txt
+
+pytest==9.1.1
+pytest-cov==7.1.0
+httpx==0.28.1

@@ -9,7 +9,22 @@ from sklearn.metrics import precision_score, recall_score, f1_score, confusion_m
 import xgboost as xgb
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from ml.generate_module_a_data import backup, generate_module_a_data, sha256
-from ml.features_module_a import FEATURES, FEATURE_CONTRACT, BENCHMARK_NOTICE, preprocess_features
+from ml.features_module_a import (
+    ARTIFACT_VERSION, DATASET_ID, FEATURES, FEATURE_CONTRACT, BENCHMARK_NOTICE,
+    MODEL_VERSION, PREPROCESSING_VERSION, EXPECTED_UNITS, preprocess_features,
+)
+
+
+def _library_versions():
+    versions = {}
+    for name in ('xgboost', 'sklearn', 'numpy', 'pandas'):
+        try:
+            versions[name] = __import__('importlib.metadata').metadata.version(name if name != 'sklearn' else 'scikit-learn')
+        except Exception:
+            versions[name] = 'unknown'
+    import sys as _sys
+    versions['python'] = _sys.version.split()[0]
+    return versions
 
 
 def chronological_split(df):
@@ -60,6 +75,11 @@ def train_module_a(data_path: str = 'data/raw/module_a_transactions.csv', model_
     if metrics['f1'] == 1.0:
         raise RuntimeError('Perfect F1: stop publication and investigate leakage/provenance')
     report = {'metrics': metrics, 'feature_contract': FEATURE_CONTRACT,
+              'artifact_version': ARTIFACT_VERSION, 'model_version': MODEL_VERSION,
+              'feature_order': FEATURES, 'dataset_id': DATASET_ID,
+              'preprocessing_version': PREPROCESSING_VERSION,
+              'expected_units': EXPECTED_UNITS,
+              'model_library_versions': _library_versions(),
               'split': {'method': 'chronological 80/20; equal timestamps stay together', 'cutoff_TransactionDT': cutoff,
                         'train_rows': len(train), 'test_rows': len(test), 'train_fraud': int(y_train.sum()),
                         'test_fraud': int(y_test.sum()), 'threshold': 0.5},

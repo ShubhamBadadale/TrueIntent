@@ -21,7 +21,9 @@ by zeroing their inputs. No replacement production artifact was fabricated.
 
 Source ingestion copies amount and labels, retains source IDs/time for audit/split,
 and adds the explicit unit assertion. It generates no synthetic flags and reads
-no card/address columns. The historical module_a_priors.json is unused.
+no card/address columns. The historical `ml/module_a_priors.json` config and the
+stale six-feature metrics report were deleted during the repository audit, since
+no reader remained once the features were removed.
 
 ## Shared contract and API behavior
 
@@ -69,9 +71,10 @@ data/model. No dataset was downloaded or synthesized for production training.
 | F1 | 0.156163 | Not measured |
 | False-positive rate | 0.253113 | Not measured |
 
-The historical report `ml/models/module_a.metrics.json` is retained unchanged.
-Its old four-feature no-telemetry ablation is **not** an amount-only evaluation.
-No accuracy improvement is claimed. Correctness here means removing unsupported
+The historical six-feature figures are recorded in
+[`data/DATASHEET.md`](../data/DATASHEET.md) and are **not** an amount-only evaluation. The stale
+`ml/models/module_a.metrics.json` report has been deleted so it cannot be mistaken for a current
+artifact description. No accuracy improvement is claimed. Correctness here means removing unsupported
 interpretations and failing explicitly when a valid assessment is unavailable.
 
 Once the authorized source is available, run from the repository root:
@@ -90,10 +93,14 @@ training on the same authorized data; do not infer them from regression fixtures
 
 ## Validation and limits
 
-Verification on this checkout: Python suite **112 passed, 6 skipped**; frontend
-regressions **3 passed**; frontend production build and lint passed. Skips cover
-missing real B/C artifacts and OCR engine/evidence. Two existing Starlette
-deprecation warnings remain. No real Module A retraining metrics were produced.
+Verification on this checkout: Python suite **149 passed, 2 skipped**; frontend
+regressions **14 passed**; frontend production build and lint passed; coverage
+**76%** overall and **82%** on serving + inference code. The two skips cover the
+real-screenshot evidence test and the Tesseract-binary test; model-backed B/C
+tests additionally skip when their gitignored artifact is absent. Two upstream
+Starlette deprecation warnings remain. No real Module A retraining metrics were
+produced, and a clean-checkout virtualenv was verified to install the pinned
+requirements and pass the full suite.
 
 Regression coverage includes feature parity, timezone/ID/telemetry invariance,
 invalid amount/unit rejection, missing/corrupt/old artifacts, cache invalidation,

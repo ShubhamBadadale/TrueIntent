@@ -1,0 +1,1 @@
+"""TrueIntent FastAPI application package (Module A-D wiring)."""

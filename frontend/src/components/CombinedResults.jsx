@@ -13,7 +13,8 @@ function RiskCard({ label, module, unavailable }) {
     <h4 className="font-semibold">{label}</h4>
     <p className="mt-1 text-lg">{unavailable || (valid ? index(module.score) : 'Not assessed')}</p>
     {module?.ml_status?.startsWith('rules_only') && <p className="mt-1 text-sm text-slate-600">Rule-based checks only; classifier unavailable.</p>}
-    {module?.ml_status?.includes('unvalidated') && <p className="mt-1 text-sm text-slate-600">Authority-threat detection has limited validation.</p>}
+    {module?.ml_status?.includes('limited real-language coverage') && <p className="mt-1 text-sm text-slate-600">Experimental intent model with limited real-language coverage.</p>}
+    {module?.ml_status?.startsWith('unavailable') && <p className="mt-1 text-sm text-slate-600">This channel could not be assessed; the score shown is not a low-risk verdict.</p>}
   </div>
 }
 

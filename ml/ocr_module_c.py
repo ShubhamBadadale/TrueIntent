@@ -9,6 +9,8 @@ Requires the `pytesseract` Python wrapper AND the Tesseract OCR engine
 binary (e.g. `choco install tesseract`, `apt install tesseract-ocr`,
 `brew install tesseract`). Both are optional at import time — they are only
 needed when OCR actually runs, so text-only flows keep working without them.
+If the binary is not on PATH, set `TESSERACT_CMD` to its full path (see
+`.env.example`).
 
 IMPORTANT — failure contract: OCR on blurry/low-contrast screenshots often
 returns empty or garbled text. `analyze_image()` NEVER reports such cases as
@@ -22,7 +24,9 @@ low-risk. Callers MUST check `ocr_status` before interpreting `score`:
 import io
 import os
 import re
+import shutil
 import warnings
+from pathlib import Path
 
 try:
     from ml.predict_module_c import analyze_message
@@ -33,6 +37,89 @@ except ImportError:  # fallback for direct script execution
 # output being misreported as a low-risk (clean) message.
 MIN_OCR_TEXT_CHARS = 20
 MIN_OCR_WORDS = 3
+
+# Tesseract is installed outside PATH on some Windows layouts. Honour the
+# conventional TESSERACT_CMD override (see .env.example) instead of guessing.
+TESSERACT_CMD_ENV = 'TESSERACT_CMD'
+# Extra Tesseract language packs (e.g. "eng+hin"). Read here — not via the
+# backend settings module — so standalone ml/ use honours it too.
+TESSERACT_LANG_ENV = 'TESSERACT_LANG'
+# Read directly for the same reason; backend/app/config.py exposes the same
+# variable with the same default, so the two can never disagree.
+OCR_TIMEOUT_ENV = 'TRUEINTENT_OCR_TIMEOUT_SECONDS'
+DEFAULT_OCR_TIMEOUT_SECONDS = 15
+
+
+def _ocr_lang() -> str:
+    """Tesseract language(s), restricted to the language-code charset.
+
+    Anything else falls back to English rather than reaching the subprocess.
+    """
+    lang = os.environ.get(TESSERACT_LANG_ENV, 'eng').strip()
+    if not lang or re.fullmatch(r'[A-Za-z0-9_+]+', lang) is None:
+        return 'eng'
+    return lang
+
+
+def _ocr_timeout_seconds() -> int:
+    try:
+        raw = (os.environ.get(OCR_TIMEOUT_ENV, '') or '').strip()
+        value = int(raw) if raw else DEFAULT_OCR_TIMEOUT_SECONDS
+    except ValueError:
+        return DEFAULT_OCR_TIMEOUT_SECONDS
+    return max(1, min(120, value))
+
+
+def _default_tesseract_candidates() -> list[Path]:
+    """Return common Windows install locations not always added to PATH."""
+    candidates: list[Path] = []
+    for variable, suffix in (
+        ('ProgramFiles', ('Tesseract-OCR', 'tesseract.exe')),
+        ('ProgramFiles(x86)', ('Tesseract-OCR', 'tesseract.exe')),
+        ('LOCALAPPDATA', ('Programs', 'Tesseract-OCR', 'tesseract.exe')),
+    ):
+        root = os.environ.get(variable, '').strip()
+        if root:
+            candidates.append(Path(root).joinpath(*suffix))
+    return candidates
+
+
+def resolve_tesseract_command() -> str | None:
+    """Find a usable Tesseract executable.
+
+    An explicit ``TESSERACT_CMD`` remains authoritative. Otherwise check
+    ``PATH`` and the standard Windows installer locations. The latter matters
+    when the backend is launched from a terminal that was already open while
+    Tesseract was installed.
+    """
+    override = os.environ.get(TESSERACT_CMD_ENV, '').strip()
+    if override:
+        resolved = shutil.which(override)
+        if resolved:
+            return resolved
+        path = Path(override).expanduser()
+        return str(path) if path.is_file() else None
+
+    on_path = shutil.which('tesseract')
+    if on_path:
+        return on_path
+    for path in _default_tesseract_candidates():
+        if path.is_file():
+            return str(path)
+    return None
+
+
+def configure_tesseract_command():
+    """Point pytesseract at the discovered Tesseract executable."""
+    command = resolve_tesseract_command()
+    if not command:
+        return None
+    try:
+        import pytesseract
+    except ImportError:
+        return None
+    pytesseract.pytesseract.tesseract_cmd = command
+    return command
 
 CLEARER_SCREENSHOT_HINT = (
     "Could not extract enough text from the screenshot — "
@@ -83,7 +170,10 @@ def _load_image(image_file):
             image = _open_image(image_file)
             if image.width * image.height > 10_000_000:
                 raise OSError('Screenshot exceeds 10 million pixels')
-            if image.format not in (None, 'PNG', 'JPEG', 'WEBP', 'BMP') or getattr(image, 'is_animated', False):
+            # `is_animated` only exists before load(); `n_frames` after.
+            if getattr(image, 'is_animated', False) or getattr(image, 'n_frames', 1) > 1:
+                raise OSError('Unsupported image format or animation')
+            if image.format not in (None, 'PNG', 'JPEG', 'WEBP', 'BMP'):
                 raise OSError('Unsupported image format or animation')
             image.load()
             return image
@@ -125,6 +215,7 @@ def extract_text_from_image(image_file) -> str:
             "installed (pip install pytesseract) and the Tesseract OCR "
             "engine binary must also be installed."
         ) from e
+    configure_tesseract_command()
 
     image = _load_image(image_file)
 
@@ -133,7 +224,8 @@ def extract_text_from_image(image_file) -> str:
         image = image.convert("L")
 
     try:
-        text = pytesseract.image_to_string(image, timeout=15)
+        text = pytesseract.image_to_string(image, lang=_ocr_lang(),
+                                           timeout=_ocr_timeout_seconds())
     except Exception as e:
         raise RuntimeError(
             "OCR engine failed — Tesseract binary may be missing or the "
@@ -177,18 +269,29 @@ def analyze_image(image_file, fetch_live_page: bool = False) -> dict:
 
     When OCR yields too little/garbled text, returns the "clearer screenshot"
     response instead of a (false) low-risk score.
+
+    Failure reasons are fixed, client-safe strings: upstream exception text
+    (which may name a local path or binary location) is logged server-side with
+    a traceback and never interpolated into the returned reasons.
     """
+    import logging
+
+    logger = logging.getLogger(__name__)
     try:
         ocr_text = extract_text_from_image(image_file)
     except (FileNotFoundError, TypeError, OSError) as e:
+        logger.warning('Screenshot image could not be read: %s', type(e).__name__)
+        logger.debug('Image read failure detail', exc_info=True)
         return _failure_result(
-            f"Could not read the uploaded image ({e}). "
+            "Could not read the uploaded image. "
             "Please upload a valid PNG/JPG chat screenshot.",
             ocr_status="invalid_image",
         )
     except RuntimeError as e:
+        logger.warning('OCR engine unavailable: %s', type(e).__name__)
+        logger.debug('OCR failure detail', exc_info=True)
         return _failure_result(
-            f"OCR unavailable ({e}). As a fallback, please paste the chat "
+            "OCR unavailable. As a fallback, please paste the chat "
             "text directly for analysis.",
             ocr_status="ocr_unavailable",
         )

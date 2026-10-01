@@ -1,16 +1,12 @@
-import os
-import sys
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-
-from ml.predict_module_c import analyze_message
 import pytest
+
 from ml import predict_module_c
+from ml.predict_module_c import analyze_message
 
 @pytest.fixture(autouse=True)
 def missing_model(monkeypatch):
     # Missing artifacts must abstain, regardless of keyword hits.
     monkeypatch.setattr(predict_module_c, "_load_ml_model", lambda: None)
-
 
 
 def _result(text: str) -> dict:

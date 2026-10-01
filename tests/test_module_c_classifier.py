@@ -1,4 +1,4 @@
-﻿"""Offline data validation and classifier-path tests; no performance claim from fixtures."""
+"""Offline data validation and classifier-path tests; no performance claim from fixtures."""
 import json
 from pathlib import Path
 import joblib

@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import pytest
 from sklearn.model_selection import StratifiedGroupKFold
+
 from ml.features_module_c import normalize_text, word_tokens, INTENTS
 from ml.generate_module_c_data import digest, group_key
 from ml.module_c_dataset import assemble_intents
@@ -71,8 +72,8 @@ def test_ml_prediction_and_rule_evidence_are_separate(monkeypatch):
 
 def test_api_preserves_intent_and_abstention_fields(monkeypatch):
     from fastapi.testclient import TestClient
-    from backend.app import main
-    monkeypatch.setattr(main, 'analyze_message', lambda *args, **kwargs: dict(
+    from backend.app import main, services
+    monkeypatch.setattr(services, 'analyze_text', lambda *args, **kwargs: dict(
         score=.6, signature='none', reasons=['ML intent prediction'], ml_status='active test',
         intent='credential_theft', intent_probabilities={'credential_theft': .6},
         rule_evidence=[], text_assessed=True))
@@ -84,8 +85,8 @@ def test_api_preserves_intent_and_abstention_fields(monkeypatch):
 
 def test_api_cannot_present_missing_text_model_as_low_risk(monkeypatch):
     from fastapi.testclient import TestClient
-    from backend.app import main
-    monkeypatch.setattr(main, 'analyze_message', lambda *args, **kwargs: dict(
+    from backend.app import main, services
+    monkeypatch.setattr(services, 'analyze_text', lambda *args, **kwargs: dict(
         score=0, signature='none', reasons=[], ml_status='unavailable', text_assessed=False))
     client = TestClient(main.app)
     assert client.post('/check-message', data={'text': 'test'}).status_code == 503

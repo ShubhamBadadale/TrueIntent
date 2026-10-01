@@ -40,7 +40,7 @@ class MainActivity : Activity() {
         label("TrueIntent - call signal demo")
         label("Sends one transaction check to your server. Call state is not evidence of fraud.")
         val server = input("Backend URL", "http://10.0.2.2:8000")
-        val amount = input("Amount", "500")
+        val amount = input("IEEE-CIS benchmark amount (source units, NOT INR)", "500")
         val velocity = input("Transactions in last hour", "1")
         status = label("Call state unknown")
         val permission = Button(this).apply { text = "Enable phone call signal"; layout.addView(this) }
@@ -63,7 +63,12 @@ class MainActivity : Activity() {
             val prefs = getSharedPreferences("identity", MODE_PRIVATE)
             val id = prefs.getString("device_id", null) ?: UUID.randomUUID().toString().also { prefs.edit().putString("device_id", it).apply() }
             val now = Instant.now().toString()
-            val payload = JSONObject().put("amount", money).put("transaction_velocity", count).put("device_id", id).put("timestamp", now)
+            // Module A is an amount-only IEEE-CIS research benchmark in its original
+            // source units, so the unit must be explicit. Real INR transfers are
+            // refused by the API with HTTP 422 and are never silently scored.
+            val payload = JSONObject().put("amount", money)
+                .put("amount_unit", "ieee_cis_source")
+                .put("transaction_velocity", count).put("device_id", id).put("timestamp", now)
             if (manual.isChecked) payload.put("is_active_call", manualCall.isChecked)
             else payload.put("call_telemetry", JSONObject().put("device_id", id).put("is_active_call", active).put("timestamp", now))
             val address = server.text.toString().trim().trimEnd('/') + "/check-transaction"

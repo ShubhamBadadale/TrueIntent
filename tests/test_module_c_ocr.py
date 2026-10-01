@@ -12,15 +12,21 @@ mocked OCR output only.
 
 import glob
 import os
-import sys
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+from pathlib import Path
 
 import pytest
 
-PIL = pytest.importorskip("PIL", reason="Pillow required for screenshot tests")
+pytest.importorskip("PIL", reason="Pillow required for screenshot tests")
 
 from ml import ocr_module_c
-from ml.ocr_module_c import analyze_image, has_enough_text
+from ml.ocr_module_c import analyze_image, has_enough_text, resolve_tesseract_command
+
+# The mocked-OCR flow tests below still exercise the real Module C classifier,
+# so they need its trained artifact (gitignored) just like the API tests.
+requires_module_c = pytest.mark.skipif(
+    not (Path(__file__).resolve().parents[1] / "ml/models/module_c.pkl").exists(),
+    reason="Train Module C (ml/train_module_c.py) to run model-backed OCR flow tests",
+)
 
 
 def _make_blank_png(path: str, size=(400, 200)) -> str:
@@ -46,6 +52,7 @@ def test_blank_image_does_not_return_false_low_risk(tmp_path):
     )
 
 
+@requires_module_c
 def test_mocked_scam_ocr_text_flows_into_analyze_message(monkeypatch):
     """OCR output becomes the analyze_message() input (mocked OCR, no image needed)."""
     monkeypatch.setattr(
@@ -94,6 +101,26 @@ def test_has_enough_text_heuristic():
     assert has_enough_text("hi ok") is False
 
 
+def test_tesseract_discovery_uses_standard_install_when_path_is_stale(tmp_path, monkeypatch):
+    """A newly installed engine works without reopening the terminal."""
+    executable = tmp_path / "tesseract.exe"
+    executable.write_bytes(b"test executable placeholder")
+    monkeypatch.delenv("TESSERACT_CMD", raising=False)
+    monkeypatch.setattr(ocr_module_c.shutil, "which", lambda _name: None)
+    monkeypatch.setattr(
+        ocr_module_c, "_default_tesseract_candidates", lambda: [executable]
+    )
+
+    assert resolve_tesseract_command() == str(executable)
+
+
+def test_invalid_explicit_tesseract_command_is_not_reported_as_available(monkeypatch):
+    monkeypatch.setenv("TESSERACT_CMD", "Z:/missing/tesseract.exe")
+    monkeypatch.setattr(ocr_module_c.shutil, "which", lambda _name: None)
+
+    assert resolve_tesseract_command() is None
+
+
 def test_user_provided_screenshot():
     """Real evidence test — SKIPPED until sample screenshots are provided.
 
@@ -120,6 +147,7 @@ def test_user_provided_screenshot():
         assert res["signature"] in ("fear_authority", "greed_opportunity", "none")
 
 
+@requires_module_c
 def test_synthetic_fixture_end_to_end():
     """End-to-end OCR on the user-approved SYNTHETIC fixture (NOT real evidence).
 

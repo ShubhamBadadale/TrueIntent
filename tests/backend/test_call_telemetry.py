@@ -1,8 +1,13 @@
 from datetime import datetime, timezone, timedelta
+
 import pytest
+
+pytest.importorskip("fastapi", reason="fastapi required for API tests")
+pytest.importorskip("httpx", reason="httpx required for TestClient")
+
 from fastapi.testclient import TestClient
-from app.main import app
-from app.schemas import TransactionCheckRequest
+from backend.app.main import app
+from backend.app.schemas import TransactionCheckRequest
 
 client = TestClient(app)
 

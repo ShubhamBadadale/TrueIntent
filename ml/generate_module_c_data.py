@@ -1,4 +1,4 @@
-﻿"""Assemble real text with explicit source/weak behavioral labels; no synthetic padding."""
+"""Assemble real text with explicit source/weak behavioral labels; no synthetic padding."""
 import argparse
 import email
 from email import policy
@@ -107,9 +107,11 @@ def generate_module_c_data(raw_dir=ROOT / 'data/raw', fear_path=ROOT / 'data/mod
                              label_basis='Weak corpus-level mapping: advance-fee fraud to greed/opportunity; not individually reviewed',
                              group_id=group_key(text)))
     for item in json.loads(Path(fear_path).read_text(encoding='utf-8')):
+        # `source_kind` is a categorical provenance field (the per-source prose
+        # lives in label_basis), so curated fear excerpts are grouped here.
         rows.append(dict(text=item['text'], signature=item['signature'], source_url=item['source_url'],
-                         source_id=item['example_id'], source_kind=item['source_kind'], label_basis=item['label_basis'],
-                         group_id=group_key(item['text'])))
+                         source_id=item['example_id'], source_kind='curated_fear_excerpt',
+                         label_basis=item['label_basis'], group_id=group_key(item['text'])))
     data = validate_examples(pd.DataFrame(rows))
     output = raw_dir / 'signature_examples.csv'
     if output.exists():

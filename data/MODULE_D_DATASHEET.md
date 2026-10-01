@@ -1,8 +1,10 @@
-# Module D: learned synthetic scenario policy
+# Module D datasheet — version-1 learned synthetic scenario policy
 
-**Historical version-1 report.** See the current
-[interaction evaluation](../docs/MODULE_D_FUSION_EVALUATION.md) for availability,
-ablation results and the new simulation's limitations.
+**Historical version-1 report; the code that produced it has been removed.** See the current
+[interaction evaluation](../docs/MODULE_D_FUSION_EVALUATION.md) for availability handling, ablation
+results and the current simulation's limitations. The serving artifact
+(`ml/models/module_d.pkl`, `format_version: 2`) and its report are v2, not what this page
+describes.
 
 The three inputs are actual scores from the existing trained A/B/C artifacts.
 No jointly observed, labeled transaction + URL + message incident dataset exists
@@ -57,16 +59,21 @@ claim that the model correctly recognizes fraud.
 
 ## Reproduction
 
-Use the backend venv with the existing A/B/C datasets and artifacts:
+> The version-1 generator these commands refer to has been removed. It could not run against the
+> amount-only Module A benchmark (`validate_artifact()` rejects any non-v2 artifact) and its
+> `combined_label` policy could not distinguish an absent channel from a zero score. The current
+> simulation in `ml/evaluate_module_d.py` is authoritative — see the
+> [Module D evaluation](../docs/MODULE_D_FUSION_EVALUATION.md). The historical trainer entry point
+> `ml/train_module_d.py` now delegates to that simulation.
+
+The v1 artifacts, if you still have them, were reproduced with:
 
 ```powershell
-.\backend\venv\Scripts\python.exe ml/generate_module_d_data.py
-.\backend\venv\Scripts\python.exe ml/train_module_d.py
-.\backend\venv\Scripts\python.exe -m pytest tests -q
+.\.venv\Scripts\python.exe ml/generate_module_d_data.py   # removed
+.\.venv\Scripts\python.exe ml/train_module_d.py          # now delegates to evaluate_module_d
 ```
 
-CSV and provenance JSON: `data/raw/module_d_scenarios.*`; model:
-`ml/models/module_d.pkl`; tracked report: `ml/models/module_d.metrics.json`.
-The report records artifact/data SHA-256 and exact coefficient folds. Base scores
-must be regenerated and D retrained when A/B/C change. Source datasets/models remain
-gitignored; this is not automatically reproducible from a data-free clone.
+CSV and provenance JSON were `data/raw/module_d_scenarios.*`; model: `ml/models/module_d.pkl`;
+tracked report: `ml/models/module_d.metrics.json` (now the v2 interaction report). The report records
+artifact/data SHA-256 and exact coefficient folds. Base scores must be regenerated and D retrained
+when A/B/C change.

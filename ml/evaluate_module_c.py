@@ -1,13 +1,17 @@
-"""Grouped intent comparison with separate real and authored diagnostics."""
+"""Grouped intent comparison with separate real and authored diagnostics.
+
+Run directly to retrain: `python ml/evaluate_module_c.py`.
+"""
 import json
 from pathlib import Path
+import shutil
 import numpy as np
-import pandas as pd
 import joblib
 from sklearn.metrics import classification_report, confusion_matrix, precision_recall_fscore_support
 from sklearn.model_selection import StratifiedGroupKFold
 from threadpoolctl import threadpool_limits
 from ml.features_module_c import INTENTS, LEGACY_MAP, make_intent_pipeline, normalize_text
+from ml.generate_module_c_data import digest
 from ml.module_c_dataset import assemble_intents
 
 
@@ -66,7 +70,11 @@ def apply_rules(texts, predictions, rules):
     return result
 
 
-def train_intents(signature_path='data/raw/signature_examples.csv', model_output_path='ml/models/module_c.pkl'):
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def train_intents(signature_path=ROOT / 'data/raw/signature_examples.csv',
+                  model_output_path=ROOT / 'ml/models/module_c.pkl'):
     data, provenance = assemble_intents(signature_path)
     group_support = data.groupby('intent').group_id.nunique()
     if set(group_support.index) != set(INTENTS) or group_support.min() < 5:
@@ -130,8 +138,6 @@ def train_intents(signature_path='data/raw/signature_examples.csv', model_output
     output = Path(model_output_path)
     output.parent.mkdir(parents=True, exist_ok=True)
     if output.exists():
-        import shutil
-        from ml.generate_module_c_data import digest
         shutil.copy2(output, output.with_name(output.stem + '.before-' + digest(output.read_bytes())[:12] + '.pkl'))
     joblib.dump(artifact, output)
     output.with_suffix('.metrics.json').write_text(json.dumps(evaluation, indent=2) + '\n', encoding='utf-8')
@@ -141,3 +147,7 @@ def train_intents(signature_path='data/raw/signature_examples.csv', model_output
     print(json.dumps({kind: {'macro_f1': results[kind]['all']['macro_f1'],
                              'hinglish_macro_f1': results[kind]['hinglish']['macro_f1']} for kind in kinds}, indent=2))
     return artifact
+
+
+if __name__ == '__main__':
+    train_intents()

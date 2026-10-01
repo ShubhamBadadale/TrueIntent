@@ -26,6 +26,7 @@ test('risk index wording and tier boundaries are explicit', async () => {
   for (const invalid of [null, NaN, Infinity, -1, 2, '0']) assert.equal(tierForScore(invalid), null)
   const html = renderToStaticMarkup(createElement(Results, { result: { score: .6 } }))
   assert.match(html, /Risk Index/)
+  assert.match(html, /Verdict: Likely scam/)
   assert.match(html, /not a calibrated probability/)
 })
 

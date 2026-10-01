@@ -1,0 +1,16 @@
+15:31:40 INFO    - backend.app.main: CORS: local development origins only
+15:31:40 INFO    - backend.app.main: TrueIntent API ready (api_version=v1, environment=development)
+15:31:40 INFO    - uvicorn.error: Started server process [23096]
+15:31:40 INFO    - uvicorn.error: Waiting for application startup.
+15:31:40 INFO    - uvicorn.error: Application startup complete.
+15:31:40 INFO    - uvicorn.error: Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+15:31:54 INFO    09294bdabf9e42a385686765808b637d uvicorn.access: 127.0.0.1:55257 - "GET /health HTTP/1.1" 200
+15:31:54 INFO    09294bdabf9e42a385686765808b637d backend.app.middleware: GET /health -> 200 | method=GET path=/health status_code=200 duration_ms=24.08
+15:31:55 INFO    d9ca67e0861944b9aab8b5a6df92da80 uvicorn.access: 127.0.0.1:55257 - "GET /ready HTTP/1.1" 200
+15:31:55 INFO    d9ca67e0861944b9aab8b5a6df92da80 backend.app.middleware: GET /ready -> 200 | method=GET path=/ready status_code=200 duration_ms=316.44
+15:31:55 INFO    0615b53a70de4dc6b1839b383e1c2955 uvicorn.access: 127.0.0.1:55258 - "POST /api/v1/analyze/image HTTP/1.1" 200
+15:31:55 INFO    0615b53a70de4dc6b1839b383e1c2955 backend.app.middleware: POST /api/v1/analyze/image -> 200 | method=POST path=/api/v1/analyze/image status_code=200 duration_ms=273.21
+15:33:05 INFO    5030d9be087344da99385e56b69c20c7 uvicorn.access: 127.0.0.1:65093 - "GET /ready HTTP/1.1" 200
+15:33:05 INFO    5030d9be087344da99385e56b69c20c7 backend.app.middleware: GET /ready -> 200 | method=GET path=/ready status_code=200 duration_ms=5.66
+15:33:05 INFO    5495d8e52b694b339ac7436df6c42bb1 uvicorn.access: 127.0.0.1:65094 - "POST /api/v1/analyze/image HTTP/1.1" 200
+15:33:05 INFO    5495d8e52b694b339ac7436df6c42bb1 backend.app.middleware: POST /api/v1/analyze/image -> 200 | method=POST path=/api/v1/analyze/image status_code=200 duration_ms=233.07

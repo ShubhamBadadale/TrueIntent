@@ -1,249 +1,245 @@
 """TrueIntent FastAPI backend — Modules A-D wiring.
 
-Run from the repo (matches Makefile / run-backend scripts):
-    cd backend && ..\\venv\\Scripts\\uvicorn app.main:app --port 8000
+Run from the repo root (the single documented command):
+
+    .\\.venv\\Scripts\\python.exe -m backend --port 8000
+
+Two route generations share one service layer:
+
+* ``/api/v1/*`` — the mobile-ready contract. Successes return
+  ``{"success": true, "data": {...}, "meta": {...}}``; failures return
+  ``{"success": false, "error": {...}, "meta": {...}}``.
+* ``/check-*`` — frozen legacy routes returning the original flat bodies and
+  ``{"detail": ...}`` errors, so existing clients keep working unchanged.
+
+``/health`` (liveness) and ``/ready`` (readiness) complete the surface.
 """
+from __future__ import annotations
 
-import os
-import sys
-import urllib.parse
-
-# Make the repo-root `ml` package importable whether uvicorn starts in
-# `backend/` (Makefile) or the repo root, and likewise for pytest.
-_PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-if _PROJECT_ROOT not in sys.path:
-    sys.path.insert(0, _PROJECT_ROOT)
-
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from starlette.concurrency import run_in_threadpool
-from ml.features_module_b import parse_url, hostname, is_ip
+from fastapi.responses import JSONResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from backend.app.schemas import (
-    CombinedRequest,
-    CombinedResponse,
-    MessageCheckResponse,
-    TransactionCheckRequest,
-    TransactionCheckResponse,
-    UrlCheckRequest,
-    UrlCheckResponse,
+from backend.app import health, legacy_routes, v1_routes
+from backend.app.config import API_VERSION, SETTINGS, Settings
+from backend.app.envelope import error_body
+from backend.app.errors import (
+    STATUS_CODE_MAP,
+    AppError,
+    ErrorCode,
+    InternalError,
+    ValidationFailed,
 )
-from ml.ocr_module_c import analyze_image
-from ml.predict_module_a import predict_module_a
-from ml.features_module_a import BENCHMARK_NOTICE, ModuleAUnavailableError
-from ml.predict_module_b import check_url
-from ml.predict_module_c import analyze_message
-from ml.predict_module_d import compute_unified_score
+from backend.app.middleware import RequestContextMiddleware, RequestSizeMiddleware
+from backend.app.observability import configure_logging, get_logger, get_request_id
+from backend.app.safety import redact_paths
+from backend.app.services import FUSION_DISABLED_MESSAGE
 
-app = FastAPI(title="TrueIntent API", version="0.1.0")
+logger = get_logger(__name__)
 
-# CORS: allow any local frontend port (Vite :5173, CRA :3000, etc.).
-app.add_middleware(
-    CORSMiddleware,
-    allow_origin_regex=r"http://(localhost|127\.0\.0\.1)(:\d+)?",
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-ALLOWED_IMAGE_TYPES = {"image/png", "image/jpeg", "image/webp", "image/bmp"}
-MAX_IMAGE_BYTES = 10 * 1024 * 1024  # 10 MB
+_LOCALHOST_ORIGIN_REGEX = r'http://(localhost|127\.0\.0\.1)(:\d+)?'
 
 
-def _normalize_url_or_400(url: str) -> str:
-    """Reject malformed URLs with a clear 422 (never a stack trace)."""
-    candidate = (url or "").strip()
-    if not candidate:
-        raise HTTPException(status_code=422, detail="url must be a non-empty string.")
-    try:
-        if len(candidate) > 8192 or any(ch.isspace() or ord(ch) < 32 for ch in candidate) or "\\" in candidate:
-            raise ValueError("Invalid characters or length")
-        parse_url(candidate)
-        host = hostname(candidate)
-        if not host or ("." not in host and host != "localhost" and not is_ip(host)):
-            raise ValueError("Invalid host")
-    except (ValueError, UnicodeError):
-        raise HTTPException(status_code=422, detail="Invalid URL. Expected an HTTP(S) address such as https://example.com/login.")
-    return candidate
+def _is_v1(request: Request) -> bool:
+    return request.url.path.startswith('/api/v1')
 
 
-@app.get("/")
-def root():
-    return {"status": "ok", "service": "TrueIntent API", "version": "0.1.0"}
+def _request_id() -> str:
+    return get_request_id() or 'unknown'
 
 
-@app.get("/health")
-def health():
-    return {"status": "ok"}
+def _validation_details(exc: RequestValidationError) -> dict:
+    """Field-level failure summary without echoing submitted values.
+
+    ``errors()`` entries contain the offending ``input`` (message text, URLs)
+    and sometimes ``ctx`` — neither is returned. Only location, message and
+    error type cross the boundary.
+    """
+    fields = []
+    saw_transaction = False
+    for entry in exc.errors():
+        loc = entry.get('loc', ())
+        parts = [str(part) for part in loc if str(part) != 'body']
+        if any(part == 'transaction' for part in parts):
+            saw_transaction = True
+        fields.append({
+            'field': '.'.join(parts),
+            'message': str(entry.get('msg', '')),
+            'type': str(entry.get('type', '')),
+        })
+    details: dict = {'fields': fields}
+    if saw_transaction:
+        # The v1 combined schema has no transaction field at all; explain why.
+        details['hint'] = FUSION_DISABLED_MESSAGE
+    return details
 
 
-# -----------------------------------------------------------------------------
-# Module B — URL safety
-# -----------------------------------------------------------------------------
-@app.post("/check-url", response_model=UrlCheckResponse)
-def post_check_url(body: UrlCheckRequest):
-    url = _normalize_url_or_400(body.url)
-    try:
-        # Offline-safe: skip live page fetching (deterministic, no egress).
-        result = check_url(url, fetch_live_page=False)
-    except Exception:
-        raise HTTPException(
-            status_code=500, detail="URL analysis failed unexpectedly. Please retry."
+async def _app_error_handler(request: Request, exc: AppError) -> JSONResponse:
+    request_id = _request_id()
+    logger.warning(
+        'request failed: %s', exc.code,
+        extra={'request_id': request_id, 'method': request.method,
+               'path': request.url.path, 'status_code': exc.status_code,
+               'error_code': exc.code},
+    )
+    if _is_v1(request):
+        return JSONResponse(
+            status_code=exc.status_code, content=error_body(exc, request_id),
         )
-    return UrlCheckResponse(
-        score=result["score"], reasons=result["reasons"],
-        ml_status=result.get("ml_status", ""),
+    return JSONResponse(status_code=exc.status_code, content={'detail': exc.message})
+
+
+async def _validation_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
+    request_id = _request_id()
+    logger.warning(
+        'request validation failed',
+        extra={'request_id': request_id, 'method': request.method,
+               'path': request.url.path, 'status_code': 422,
+               'error_code': ErrorCode.VALIDATION_ERROR},
+    )
+    if _is_v1(request):
+        err = ValidationFailed(
+            'The request was not valid.', details=_validation_details(exc),
+        )
+        return JSONResponse(status_code=422, content=error_body(err, request_id))
+    from fastapi.encoders import jsonable_encoder
+
+    return JSONResponse(
+        status_code=422, content={'detail': jsonable_encoder(exc.errors())},
     )
 
 
-# -----------------------------------------------------------------------------
-# Module C — Message text or screenshot image (exactly one)
-# -----------------------------------------------------------------------------
-@app.post("/check-message", response_model=MessageCheckResponse)
-async def post_check_message(
-    text: str | None = Form(default=None),
-    image: UploadFile | None = File(default=None),
-):
-    has_text = text is not None and text.strip() != ""
-    if has_text and image is not None:
-        raise HTTPException(
-            status_code=400,
-            detail="Provide either 'text' or 'image', not both.",
+async def _http_handler(request: Request, exc: StarletteHTTPException) -> JSONResponse:
+    request_id = _request_id()
+    code = STATUS_CODE_MAP.get(exc.status_code, ErrorCode.VALIDATION_ERROR)
+    if _is_v1(request):
+        err = AppError(
+            _default_v1_message(exc.status_code, exc.detail),
+            code=code, status_code=exc.status_code,
         )
-    if not has_text and image is None:
-        raise HTTPException(
-            status_code=400,
-            detail="Provide either message 'text' (form field) or an 'image' upload.",
+        return JSONResponse(
+            status_code=exc.status_code, content=error_body(err, request_id),
         )
+    return JSONResponse(status_code=exc.status_code, content={'detail': exc.detail})
 
-    if image is not None:
-        if image.content_type not in ALLOWED_IMAGE_TYPES:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Unsupported image type '{image.content_type}'. "
-                "Upload a PNG or JPEG chat screenshot.",
-            )
-        try:
-            content = await image.read(MAX_IMAGE_BYTES + 1)
-        except Exception:
-            raise HTTPException(status_code=400, detail="Could not read the uploaded file.")
-        if not content:
-            raise HTTPException(status_code=400, detail="Uploaded image file is empty.")
-        if len(content) > MAX_IMAGE_BYTES:
-            raise HTTPException(
-                status_code=400,
-                detail="Uploaded image exceeds the 10 MB size limit.",
-            )
-        try:
-            result = await run_in_threadpool(analyze_image, content, fetch_live_page=False)
-        except Exception:
-            raise HTTPException(
-                status_code=500, detail="Screenshot analysis failed unexpectedly. Please retry."
-            )
-        status = result.get("ocr_status", "")
-        if status == "invalid_image":
-            raise HTTPException(
-                status_code=400,
-                detail="Unreadable image file. Please upload a valid PNG/JPEG chat screenshot.",
-            )
-        if status == "ocr_unavailable":
-            raise HTTPException(
-                status_code=503,
-                detail="OCR engine unavailable on the server. "
-                "As a fallback, paste the chat text directly in 'text'.",
-            )
-        if status == 'ok' and result.get('text_assessed') is False:
-            raise HTTPException(status_code=503, detail='Message model unavailable; text risk was not assessed.')
-        return MessageCheckResponse(
-            score=result["score"], signature=result["signature"],
-            reasons=result["reasons"], ml_status=result.get("ml_status", ""),
-            ocr_text=result.get("ocr_text"), ocr_status=status,
-            intent=result.get('intent'), intent_probabilities=result.get('intent_probabilities', {}),
-            rule_evidence=result.get('rule_evidence', []), text_assessed=result.get('text_assessed', False),
-        )
 
-    # Text flow.
-    if len(text) > 20000:
-        raise HTTPException(status_code=422, detail="Message exceeds the 20,000 character limit.")
-    try:
-        result = await run_in_threadpool(analyze_message, text.strip(), fetch_live_page=False)
-    except Exception:
-        raise HTTPException(
-            status_code=500, detail="Message analysis failed unexpectedly. Please retry."
+def _default_v1_message(status_code: int, detail) -> str:
+    if status_code == 404:
+        return 'Unknown endpoint.'
+    if status_code == 405:
+        return 'Method not allowed for this endpoint.'
+    if isinstance(detail, str) and detail and len(detail) <= 300:
+        return redact_paths(detail)
+    if status_code == 413:
+        return 'Request body is larger than this deployment accepts.'
+    if status_code == 415:
+        return 'Unsupported media type.'
+    return 'The request could not be completed.'
+
+
+async def _unhandled_handler(request: Request, exc: Exception) -> JSONResponse:
+    request_id = _request_id()
+    # Full traceback stays in the server log. The client gets nothing but a
+    # correlation ID and a retry instruction.
+    logger.error(
+        'unhandled exception for %s %s', request.method, request.url.path,
+        exc_info=True,
+        extra={'request_id': request_id, 'method': request.method,
+               'path': request.url.path, 'status_code': 500,
+               'error_code': ErrorCode.INTERNAL_ERROR},
+    )
+    # The header is set explicitly here: the ServerErrorMiddleware invokes this
+    # handler outside the request-context middleware, so its send-wrapper never
+    # runs for these responses.
+    headers = {SETTINGS.request_id_header: request_id}
+    if _is_v1(request):
+        return JSONResponse(
+            status_code=500,
+            content=error_body(InternalError('Unexpected failure.'), request_id),
+            headers=headers,
         )
-    if result.get('text_assessed') is False:
-        raise HTTPException(status_code=503, detail='Message model unavailable; text risk was not assessed.')
-    result["text"] = text.strip()
-    return MessageCheckResponse(
-        score=result["score"], signature=result["signature"],
-        reasons=result["reasons"], ml_status=result.get("ml_status", ""),
-        intent=result.get('intent'), intent_probabilities=result.get('intent_probabilities', {}),
-        rule_evidence=result.get('rule_evidence', []), text_assessed=result.get('text_assessed', False),
+    return JSONResponse(
+        status_code=500,
+        content={'detail': 'Internal server error. Please retry.'},
+        headers=headers,
     )
 
 
-# -----------------------------------------------------------------------------
-# Module A — Transaction + call state
-# -----------------------------------------------------------------------------
-@app.post("/check-transaction", response_model=TransactionCheckResponse)
-def post_check_transaction(body: TransactionCheckRequest):
-    payload = body.to_module_a_payload()
-    try:
-        score = predict_module_a(payload)
-    except ModuleAUnavailableError as exc:
-        raise HTTPException(status_code=503, detail=str(exc))
-    except ValueError as exc:
-        raise HTTPException(status_code=422, detail=str(exc))
-    except Exception:
-        raise HTTPException(
-            status_code=500, detail="Transaction analysis failed unexpectedly. Please retry."
+def _configure_cors(app: FastAPI, settings: Settings) -> None:
+    origins = [origin for origin in settings.cors_origins]
+    if origins:
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=origins,
+            allow_credentials=settings.cors_allow_credentials,
+            allow_methods=list(settings.cors_allow_methods),
+            allow_headers=['*'],
         )
-    return TransactionCheckResponse(score=float(score), explanation=BENCHMARK_NOTICE)
-
-
-# -----------------------------------------------------------------------------
-# Module D — Unified result over any subset of inputs
-# -----------------------------------------------------------------------------
-@app.post("/check-combined", response_model=CombinedResponse)
-def post_check_combined(body: CombinedRequest):
-    mod_a = mod_b = mod_c = None
-    modules: dict = {}
-
-    if body.transaction is not None:
-        raise HTTPException(
-            status_code=422,
-            detail="Transaction fusion is disabled: Module A is now a source-unit "
-            "amount-only benchmark, incompatible with the existing combined policy. "
-            "Use /check-transaction for benchmark inputs, or submit URL/text without a transaction.",
+        logger.info('CORS: %d explicit origin(s)', len(origins))
+    elif settings.cors_allow_localhost:
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origin_regex=_LOCALHOST_ORIGIN_REGEX,
+            allow_credentials=settings.cors_allow_credentials,
+            allow_methods=list(settings.cors_allow_methods),
+            allow_headers=['*'],
+        )
+        logger.info('CORS: local development origins only')
+    else:
+        logger.warning('CORS: no origins configured; browsers cannot call this API')
+    if settings.is_production and not origins:
+        logger.warning(
+            'Production without TRUEINTENT_CORS_ORIGINS: same-origin and '
+            'non-browser clients only.'
         )
 
-    if body.url is not None and body.url.strip() != "":
-        url = _normalize_url_or_400(body.url)
-        try:
-            mod_b = check_url(url, fetch_live_page=False)
-        except Exception:
-            raise HTTPException(status_code=500, detail="URL analysis failed.")
-        modules["module_b"] = mod_b
 
-    if body.text is not None and body.text.strip() != "":
-        try:
-            mod_c = analyze_message(body.text.strip(), fetch_live_page=False)
-        except Exception:
-            raise HTTPException(status_code=500, detail="Message analysis failed.")
-        if mod_c.get('text_assessed') is False:
-            raise HTTPException(status_code=503, detail='Message model unavailable; text risk was not assessed.')
-        mod_c["text"] = body.text.strip()  # context for Module D token attribution
-        modules["module_c"] = {k: v for k, v in mod_c.items() if k != "text"}
+def create_app(settings: Settings | None = None) -> FastAPI:
+    """Build the application. Accepts explicit settings so tests can vary CORS."""
+    settings = settings or SETTINGS
+    configure_logging()
 
-    try:
-        unified = compute_unified_score(mod_a, mod_b, mod_c, active_call=body.active_call)
-    except (ValueError, TypeError) as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception:
-        raise HTTPException(status_code=500, detail="Unified scoring failed.")
+    app = FastAPI(
+        title='TrueIntent API',
+        version='0.2.0',
+        description=(
+            'Multi-channel fraud-intent analysis. `/api/v1/*` is the versioned '
+            'contract; `/check-*` routes are frozen for compatibility.'
+        ),
+    )
 
-    return CombinedResponse(
-        tier=unified["tier"], score=unified["score"],
-        explanation=unified["explanation"],
-        details=unified.get("details", {}), modules=modules,
+    app.add_middleware(RequestSizeMiddleware, max_bytes=settings.max_request_bytes)
+    app.add_middleware(
+        RequestContextMiddleware, request_id_header=settings.request_id_header,
+    )
+    _configure_cors(app, settings)
+
+    app.add_exception_handler(AppError, _app_error_handler)
+    app.add_exception_handler(RequestValidationError, _validation_handler)
+    app.add_exception_handler(StarletteHTTPException, _http_handler)
+    app.add_exception_handler(Exception, _unhandled_handler)
+
+    app.include_router(health.router)
+    app.include_router(v1_routes.router)
+    app.include_router(legacy_routes.router)
+
+    logger.info(
+        'TrueIntent API ready (api_version=%s, environment=%s)',
+        API_VERSION, settings.environment,
+        extra={'api_version': API_VERSION},
+    )
+    return app
+
+
+# The module-level application: `backend.app.main:app`.
+app = create_app()
+
+
+if __name__ == '__main__':  # pragma: no cover - use `python -m backend`
+    import uvicorn
+
+    uvicorn.run(
+        'backend.app.main:app', host=SETTINGS.host, port=SETTINGS.port, log_config=None,
     )

@@ -8,6 +8,7 @@ const TIER_STYLES = {
     badge: 'bg-emerald-700',
     heading: 'text-emerald-950',
     body: 'text-emerald-950',
+    verdict: 'No strong scam signs found',
     guidance:
       'No strong warning signs were found. Take your time anyway — a genuine caller will never mind you waiting or asking someone you trust.',
   },
@@ -16,6 +17,7 @@ const TIER_STYLES = {
     badge: 'bg-amber-600',
     heading: 'text-amber-950',
     body: 'text-amber-950',
+    verdict: 'Suspicious — review carefully',
     guidance:
       'There are a few things worth a second look. Please pause, read the reasons below, and check with someone you trust before acting.',
   },
@@ -24,6 +26,7 @@ const TIER_STYLES = {
     badge: 'bg-orange-700',
     heading: 'text-orange-950',
     body: 'text-orange-950',
+    verdict: 'Likely scam',
     guidance:
       'This looks risky. Please stop and do not send any money or share codes. Talk to a family member, or call your bank on its official number.',
   },
@@ -32,6 +35,7 @@ const TIER_STYLES = {
     badge: 'bg-red-800',
     heading: 'text-red-950',
     body: 'text-red-950',
+    verdict: 'Very likely scam',
     guidance:
       'This looks very risky. Please do not send money, share OTPs, or stay on the call. Hang up calmly and speak to someone you trust or your bank.',
   },
@@ -90,6 +94,10 @@ export default function Results({ result, title }) {
           Risk Index: <strong>{toPercent(score)}</strong>
         </span>
       </div>
+
+      <p className={`mt-4 text-2xl font-bold ${style.heading}`}>
+        Verdict: {style.verdict}
+      </p>
 
       {title && <h3 className={`mt-4 text-xl font-semibold ${style.heading}`}>{title}</h3>}
 

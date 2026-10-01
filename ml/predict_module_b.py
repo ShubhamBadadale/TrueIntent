@@ -1,26 +1,53 @@
 import os
 import math
-import urllib.parse
 from difflib import SequenceMatcher
 try:
     from ml.model_loading import load_artifact
 except ImportError:
     from model_loading import load_artifact
 try:
-    from ml.features_module_b import clean_url, parse_url, hostname as parsed_hostname, is_ip as parsed_is_ip
+    from ml.features_module_b import (
+        clean_url, parse_url, hostname as parsed_hostname, is_ip as parsed_is_ip,
+        describe_port, subdomain_count, is_idn_host, is_shortener_host,
+        describe_hostname, suspicious_encoded_chars, suspicious_path_query,
+        nested_redirect_target, lookalike_indicators, is_private_or_internal,
+        shannon_entropy, ip_version,
+        LONG_URL_CHARS, EXTREME_URL_CHARS, EXCESSIVE_SUBDOMAINS,
+        HIGH_ENTROPY_THRESHOLD,
+    )
 except ModuleNotFoundError:
-    from features_module_b import clean_url, parse_url, hostname as parsed_hostname, is_ip as parsed_is_ip
+    from features_module_b import (
+        clean_url, parse_url, hostname as parsed_hostname, is_ip as parsed_is_ip,
+        describe_port, subdomain_count, is_idn_host, is_shortener_host,
+        describe_hostname, suspicious_encoded_chars, suspicious_path_query,
+        nested_redirect_target, lookalike_indicators, is_private_or_internal,
+        shannon_entropy, ip_version,
+        LONG_URL_CHARS, EXTREME_URL_CHARS, EXCESSIVE_SUBDOMAINS,
+        HIGH_ENTROPY_THRESHOLD,
+    )
 
 # -----------------------------------------------------------------------------
 # NAMED RULE WEIGHT CONSTANTS
 # -----------------------------------------------------------------------------
 WEIGHT_IP_ADDRESS = 0.40
 WEIGHT_TYPOSQUATTING = 0.35
-WEIGHT_LOGIN_FORM_PRESENT = 0.25
 WEIGHT_INSECURE_HTTP = 0.20
 WEIGHT_SUSPICIOUS_TLD = 0.20
 WEIGHT_URL_OBFUSCATION = 0.15
 WEIGHT_SUSPICIOUS_LENGTH = 0.10
+# Offline-only extensions (no network egress; all via centralized parsing).
+WEIGHT_UNUSUAL_PORT = 0.15
+WEIGHT_EXCESSIVE_SUBDOMAINS = 0.15
+WEIGHT_IDN_HOST = 0.15
+WEIGHT_SHORTENER = 0.25
+WEIGHT_PRIVATE_TARGET = 0.25
+WEIGHT_MALFORMED_HOST = 0.25
+WEIGHT_SUSPICIOUS_PATH_QUERY = 0.15
+WEIGHT_NESTED_REDIRECT = 0.20
+WEIGHT_HIGH_ENTROPY = 0.10
+WEIGHT_EXTREME_LENGTH = 0.15
+WEIGHT_SUSPICIOUS_ENCODING = 0.15
+WEIGHT_LOOKALIKE = 0.15
 
 # Target brand list for typosquatting / similarity checks
 CANONICAL_BRAND_DOMAINS = {
@@ -59,11 +86,6 @@ def _load_ml_model(model_path: str = None):
     return _ML_MODEL_ARTIFACT
 
 
-def is_ip_address(hostname: str) -> bool:
-    """Recognize valid IPv4 and IPv6 literals with the shared parser."""
-    return parsed_is_ip(hostname)
-
-
 def check_typosquatting(hostname: str) -> tuple[bool, str]:
     """
     Checks if hostname attempts brand typosquatting or similarity spoofing.
@@ -91,8 +113,12 @@ def check_typosquatting(hostname: str) -> tuple[bool, str]:
 
 
 
-def inspect_live_page(url: str, timeout: float = 2.0) -> tuple[bool, str, list[str]]:
-    """Compatibility stub: user-supplied destinations are never fetched."""
+def inspect_live_page(url: str) -> tuple[bool, str, list[str]]:
+    """Compatibility stub: user-supplied destinations are never fetched.
+
+    Kept so callers can assert the no-egress contract; it performs no I/O and
+    therefore never contributes a login-form finding or any score weight.
+    """
     return False, url, ["Live page fetching is disabled; only offline URL checks ran."]
 
 
@@ -121,16 +147,44 @@ def check_url(url: str, fetch_live_page: bool = False) -> dict:
         rule_score_sum += WEIGHT_INSECURE_HTTP
         reasons.append("Insecure protocol: URL does not use encrypted HTTPS connection")
 
-    # 2. IP Address Host check
+    # 2. IP Address Host check (IPv4 and IPv6 via centralized ipaddress parsing).
+    ip_ver = ip_version(hostname)
     if parsed_is_ip(hostname):
         rule_score_sum += WEIGHT_IP_ADDRESS
-        reasons.append(f"Host is a raw IP address ({hostname}) rather than a registered domain name")
+        label = f"IPv{ip_ver}" if ip_ver else "IP"
+        reasons.append(f"Host is a raw IP address ({label}; {hostname}) rather than a registered domain name")
+
+    # 2b. Localhost / private / internal targets (extra suspicion beyond raw IP).
+    if is_private_or_internal(hostname):
+        rule_score_sum += WEIGHT_PRIVATE_TARGET
+        reasons.append(f"Localhost/private/internal target ({hostname}); not a public destination")
 
     # 3. Typosquatting & Brand Impersonation check
     is_typosquatted, brand = check_typosquatting(hostname)
     if is_typosquatted:
         rule_score_sum += WEIGHT_TYPOSQUATTING
         reasons.append(f"Potential typosquatting / brand spoofing targeting '{brand}'")
+
+    # 3b. Generic look-alike indicators (confusables, digits, punycode handled
+    # separately). Hyphen overuse is counted once in the obfuscation bucket, so
+    # it is excluded here to avoid double-counting the same characters.
+    lookalikes = [h for h in lookalike_indicators(url) if 'hyphen' not in h]
+    if is_idn_host(url) and 'punycode (xn--) hostname' in lookalike_indicators(url):
+        # Punycode gets its own IDN weight below; don't double-count here.
+        lookalikes = [h for h in lookalikes if 'punycode' not in h]
+    if lookalikes:
+        rule_score_sum += WEIGHT_LOOKALIKE
+        reasons.append(f"Look-alike domain indicators: {'; '.join(sorted(set(lookalikes)))}")
+
+    # 3c. IDN / punycode hostname.
+    if is_idn_host(url):
+        rule_score_sum += WEIGHT_IDN_HOST
+        reasons.append("Internationalized (punycode xn--) hostname; visually confusable domains possible")
+
+    # 3d. Known URL shortener (destination hidden without fetching).
+    if is_shortener_host(url):
+        rule_score_sum += WEIGHT_SHORTENER
+        reasons.append(f"Known URL shortener ({hostname}); final destination is hidden without following redirects")
 
     # 4. High-Risk TLD check
     tld_match = [tld for tld in HIGH_RISK_TLDS if hostname.endswith(tld)]
@@ -153,17 +207,71 @@ def check_url(url: str, fetch_live_page: bool = False) -> dict:
     if obfuscated:
         rule_score_sum += WEIGHT_URL_OBFUSCATION
 
-    # 6. Suspicious Length check
-    if len(url) > 75:
+    # 5b. Suspicious encoded bytes (control chars, delimiters, double-encoding).
+    # Escalation on top of the generic hex-encoding bucket above.
+    suspicious_enc = suspicious_encoded_chars(url)
+    if suspicious_enc:
+        rule_score_sum += WEIGHT_SUSPICIOUS_ENCODING
+        reasons.append(f"Suspicious encoded characters: {', '.join(sorted(set(suspicious_enc))[:5])}")
+
+    # 5c. Malformed hostname labels (offline audit; unparseable URLs already raise).
+    host_audit = describe_hostname(url)
+    if host_audit.get('malformed'):
+        rule_score_sum += WEIGHT_MALFORMED_HOST
+        reasons.append(f"Malformed hostname: {'; '.join(host_audit.get('reasons', ['invalid']))}")
+
+    # 5d. Unusual port (non-default or explicitly specified).
+    port_info = describe_port(url)
+    if port_info.get('unusual'):
+        rule_score_sum += WEIGHT_UNUSUAL_PORT
+        reasons.append(f"Unusual port (:{port_info.get('port')}) for {parsed_url.scheme.lower()}")
+
+    # 5e. Excessive subdomains (depth used to bury the real domain).
+    try:
+        n_sub = subdomain_count(url)
+    except Exception:
+        n_sub = 0
+    if n_sub >= EXCESSIVE_SUBDOMAINS:
+        rule_score_sum += WEIGHT_EXCESSIVE_SUBDOMAINS
+        reasons.append(f"Excessive subdomains ({n_sub} levels); real domain may be buried")
+
+    # 5f. Suspicious path/query patterns (credential, payment, executable).
+    pq_hits = suspicious_path_query(url)
+    # Avoid double-counting the generic '@'-with-query hint when '@' already fired.
+    pq_hits = [h for h in pq_hits if not (h == 'credential-like symbol with query' and "@" in url)]
+    if pq_hits:
+        rule_score_sum += WEIGHT_SUSPICIOUS_PATH_QUERY
+        shown = ', '.join(pq_hits[:5])
+        reasons.append(f"Suspicious path/query patterns: {shown}")
+
+    # 5g. Nested redirect / open-redirect parameter embedding another URL.
+    nested = nested_redirect_target(url)
+    if nested:
+        rule_score_sum += WEIGHT_NESTED_REDIRECT
+        reasons.append(f"Nested redirect parameter embeds another URL ({nested[:80]})")
+
+    # 6. Suspicious Length check (tiered: long, then extremely long escalation).
+    if len(url) > LONG_URL_CHARS:
         rule_score_sum += WEIGHT_SUSPICIOUS_LENGTH
         reasons.append(f"Excessively long URL ({len(url)} characters)")
+    if len(url) > EXTREME_URL_CHARS:
+        rule_score_sum += WEIGHT_EXTREME_LENGTH
+        reasons.append(f"Extremely long URL ({len(url)} characters); typical of obfuscated payloads")
 
-    # 7. Live Page Fetch & Login Form Detection (Option a)
-    if fetch_live_page and url.startswith(("http://", "https://")):
-        has_login_form, final_url, page_reasons = inspect_live_page(url)
+    # 6b. High character entropy (random-looking / generated strings).
+    try:
+        entropy = shannon_entropy(url)
+    except Exception:
+        entropy = 0.0
+    if entropy >= HIGH_ENTROPY_THRESHOLD:
+        rule_score_sum += WEIGHT_HIGH_ENTROPY
+        reasons.append(f"High URL entropy ({entropy:.2f}); random-looking or generated string")
+
+    # 7. Live page inspection is permanently disabled. When a caller still asks
+    # for it, surface that fact in the reasons instead of inventing findings.
+    if fetch_live_page:
+        _has_login_form, _final_url, page_reasons = inspect_live_page(url)
         reasons.extend(page_reasons)
-        if has_login_form:
-            rule_score_sum += WEIGHT_LOGIN_FORM_PRESENT
 
     # Cap rule risk score at 1.0
     rule_score = min(1.0, rule_score_sum)

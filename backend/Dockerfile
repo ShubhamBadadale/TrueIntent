@@ -25,7 +25,7 @@ COPY ml/ ./ml/
 RUN useradd --create-home appuser
 USER appuser
 
-WORKDIR /app/backend
 EXPOSE 8000
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Single entry point: `python -m backend` (see backend/__main__.py).
+CMD ["python", "-m", "backend", "--host", "0.0.0.0", "--port", "8000"]

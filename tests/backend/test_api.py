@@ -1,10 +1,6 @@
 """FastAPI endpoint tests (TestClient). Skipped where fastapi/httpx missing."""
 
-import os
-import sys
-
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "backend")))
+from pathlib import Path
 
 import pytest
 
@@ -13,9 +9,16 @@ httpx = pytest.importorskip("httpx", reason="httpx required for TestClient")
 
 from fastapi.testclient import TestClient
 
-from app.main import app
+from backend.app.main import app
 
 client = TestClient(app)
+
+# The message/combined success paths below need a trained Module C artifact
+# (gitignored). Skip honestly rather than failing on a clean checkout.
+requires_module_c = pytest.mark.skipif(
+    not (Path(__file__).resolve().parents[2] / "ml/models/module_c.pkl").exists(),
+    reason="Train Module C (ml/train_module_c.py) to run model-backed API tests",
+)
 
 FEAR_TEXT = (
     "You are under investigation for money laundering. "
@@ -52,6 +55,7 @@ def test_check_url_missing_field_error():
 
 
 # --- POST /check-message (text) ---
+@requires_module_c
 def test_check_message_text_success():
     r = client.post("/check-message", data={"text": FEAR_TEXT})
     assert r.status_code == 200, r.text
@@ -76,9 +80,9 @@ def test_check_message_unreadable_image_error():
 
 def test_check_message_image_success_mocked(monkeypatch):
     """Image flow with OCR mocked (no Tesseract binary needed)."""
-    import app.main as main_mod
+    import backend.app.services as services_mod
 
-    def fake_analyze_image(_content, fetch_live_page=False):
+    def fake_analyze_image(_content, *, declared_type=None, filename=None):
         return {
             "score": 0.75,
             "signature": "greed_opportunity",
@@ -88,7 +92,7 @@ def test_check_message_image_success_mocked(monkeypatch):
             "ocr_status": "ok",
         }
 
-    monkeypatch.setattr(main_mod, "analyze_image", fake_analyze_image)
+    monkeypatch.setattr(services_mod, "analyze_image_content", fake_analyze_image)
     from PIL import Image
     import io
 
@@ -123,6 +127,7 @@ def test_check_transaction_negative_amount_error():
 
 
 # --- POST /check-combined ---
+@requires_module_c
 def test_check_combined_low_success():
     r = client.post(
         "/check-combined",

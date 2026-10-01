@@ -3,9 +3,15 @@
 
 export const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
-export const SERVER_UNREACHABLE =
+const SERVER_UNREACHABLE =
   "We couldn't reach the analysis server. Please make sure the backend is running " +
   '(run .\\run-backend.ps1, http://localhost:8000) and try again.'
+
+// Mirrors the backend limits so oversized input fails with guidance, not a raw 422.
+export const MAX_TEXT_LENGTH = 20000
+export const MAX_URL_LENGTH = 8192
+export const MAX_IMAGE_BYTES = 10 * 1024 * 1024
+export const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/bmp']
 
 function humanizeDetail(detail, fallback) {
   if (!detail) return fallback
@@ -67,15 +73,15 @@ export function checkUrl(url) {
 }
 
 export function checkMessageText(text) {
-  if (text.length > 20000) throw new Error('Message exceeds the 20,000 character limit.')
+  if (text.length > MAX_TEXT_LENGTH) throw new Error('Message exceeds the 20,000 character limit.')
   const form = new FormData()
   form.append('text', text)
   return request('/check-message', { method: 'POST', form })
 }
 
 export function checkMessageImage(file) {
-  if (!file || !['image/png', 'image/jpeg', 'image/webp', 'image/bmp'].includes(file.type)) throw new Error('Upload a PNG, JPEG, WebP or BMP screenshot.')
-  if (!file.size || file.size > 10 * 1024 * 1024) throw new Error('Screenshot must be nonempty and at most 10 MB.')
+  if (!file || !IMAGE_TYPES.includes(file.type)) throw new Error('Upload a PNG, JPEG, WebP or BMP screenshot.')
+  if (!file.size || file.size > MAX_IMAGE_BYTES) throw new Error('Screenshot must be nonempty and at most 10 MB.')
   const form = new FormData()
   form.append('image', file)
   return request('/check-message', { method: 'POST', form })

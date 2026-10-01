@@ -1,8 +1,6 @@
 """Fusion mechanics and policy isolation; no real-world accuracy assertions."""
 import math
 import joblib
-import numpy as np
-import pandas as pd
 import pytest
 from sklearn.linear_model import LogisticRegression
 from ml.features_module_d import FEATURES, feature_row, frame_for, ABLATIONS

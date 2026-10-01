@@ -4,6 +4,11 @@ from types import SimpleNamespace
 
 import joblib
 import pytest
+
+pytest.importorskip("PIL", reason="Pillow required for image boundary tests")
+pytest.importorskip("fastapi", reason="fastapi required for API tests")
+pytest.importorskip("httpx", reason="httpx required for TestClient")
+
 from PIL import Image
 from fastapi.testclient import TestClient
 from backend.app import main
@@ -60,7 +65,7 @@ def test_image_dimensions_and_disguised_format_rejected():
 
 
 def test_ocr_timeout_is_bounded(monkeypatch):
-    import pytesseract
+    pytesseract = pytest.importorskip("pytesseract", reason="pytesseract required for OCR test")
     from ml.ocr_module_c import extract_text_from_image
     def fake_ocr(image, **kwargs):
         assert kwargs['timeout'] == 15
@@ -72,7 +77,14 @@ def test_ocr_timeout_is_bounded(monkeypatch):
 def test_empty_ocr_is_explicitly_unassessed(monkeypatch):
     from ml import ocr_module_c
     monkeypatch.setattr(ocr_module_c, 'extract_text_from_image', lambda _: '')
-    response = client.post('/check-message', files={'image': ('blank.png', b'fixture', 'image/png')})
+    # A well-formed upload (real PNG bytes): the point under test is the
+    # mocked-empty OCR output, not the upload validation itself.
+    import io
+
+    buf = io.BytesIO()
+    Image.new('RGB', (100, 50), 'white').save(buf, format='PNG')
+    buf.seek(0)
+    response = client.post('/check-message', files={'image': ('blank.png', buf, 'image/png')})
     assert response.status_code == 200
     assert response.json()['text_assessed'] is False
     assert response.json()['ocr_status'] == 'insufficient_text'

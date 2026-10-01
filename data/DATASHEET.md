@@ -1,117 +1,109 @@
-﻿# Module A datasheet — Phase 2
+# Module A datasheet — amount-only source-unit benchmark
+
+**Status: no artifact, no metrics.** Module A cannot be trained in this checkout because the
+authorized IEEE-CIS source is licensed and not redistributed. `ml/generate_module_a_data.py` stops
+with an explicit `FileNotFoundError` rather than fabricating a substitute, and `/check-transaction`
+returns **503** in that state. Nothing below is a current result.
 
 **Do not present these metrics as real-world performance.**
 
-**Historical v1 results below.** The six-feature model is disabled and its artifacts
-are rejected. Current code supports only an explicitly labelled source-unit,
-amount-only research benchmark, requiring retraining. No measured v2 results are
-available in this checkout. See [Module A correctness update](../docs/MODULE_A_CORRECTNESS.md).
+## Current contract
+
+`ml/features_module_a.py` owns the whole contract:
+
+| Item | Value |
+|---|---|
+| Feature | `amount` — the only one |
+| Unit | `ieee_cis_source`, asserted explicitly; INR or unspecified units are refused |
+| Validation | finite, nonnegative, non-boolean, representable in float32 |
+| Artifact contract | `FEATURE_CONTRACT` version 2, enforced by `validate_artifact()` |
+| Rejected | any artifact with legacy six features, wrong `n_features_in_`, or classes != `[0, 1]` |
+
+The response declares `analysis_scope: ieee_cis_amount_only_benchmark` and carries
+`BENCHMARK_NOTICE`, which states that time, device, call state and transfer count are not used and
+that the score is not a calibrated fraud probability.
 
 ## Source and choice
 
-IEEE-CIS Fraud Detection, provided locally by the user from the
-[Kaggle competition](https://www.kaggle.com/competitions/ieee-fraud-detection/data),
-was chosen because it contains observed anonymized transactions and fraud labels.
-PaySim better matches mobile-money transfers but is simulated financial data, as
-[its authors explain](https://github.com/EdgarLopezPhD/PaySim), so it does not meet
-the requirement for real financial observations. IEEE-CIS instead concerns online
-card fraud, not labeled APP coercion. No claim is made that these domains transfer.
-Use remains subject to the competition's terms; raw files are not redistributed.
+IEEE-CIS Fraud Detection, supplied locally by the user from the
+[Kaggle competition](https://www.kaggle.com/competitions/ieee-fraud-detection/data), was chosen
+because it contains observed anonymised transactions and fraud labels. PaySim better matches
+mobile-money transfers but is simulated financial data, as
+[its authors explain](https://github.com/EdgarLopezPhD/PaySim), so it does not meet the requirement
+for real financial observations. IEEE-CIS instead concerns online card fraud, not labelled APP
+coercion. **No claim is made that these domains transfer.** Use remains subject to the competition's
+terms; raw files are not redistributed.
 
-Only train_transaction.csv is used: 590,540 rows, 20,663 fraud (3.50%), 569,877
-legitimate. No sampling, class balancing by row generation, or label changes.
-Test transactions are unlabeled; sample_submission probabilities are placeholders.
-Identity files are not used: device descriptions do not establish device trust or
-per-user novelty. No call-state observations exist in the supplied files.
+Only `train_transaction.csv` is used: 590,540 rows, 20,663 fraud (3.50%), 569,877 legitimate. No
+sampling, class balancing by row generation, or label changes. Test transactions are unlabelled.
+Identity files are not used: device descriptions do not establish device trust or per-user novelty,
+and no call-state observations exist in the supplied files.
 
-## Exact six-feature contract
+## Retained historical record (v1, six features, **disabled**)
 
-| Feature | Origin | Definition and limitation |
-|---|---|---|
-| amount | Real | TransactionAmt unchanged; source units retained, no claim of INR conversion. |
-| hour_of_day | Real-derived proxy | floor(TransactionDT / 3600) modulo 24. Relative phase, not known local clock time. |
-| is_odd_hour | Real-derived proxy | Existing hour < 6 or hour >= 23 rule on relative phase; not verified nighttime. |
-| transaction_velocity | Real-derived proxy | Count in [t-3600,t) sharing complete card1/card2/addr1 tuple. Excludes current and all simultaneous transactions. Tuple collisions/splits mean this is not verified customer history. |
-| is_new_device | Synthetic in every row | Bernoulli draw conditioned on fraud label, then independent bit flip. No real device-trust history. |
-| is_active_call | Synthetic in every row | Bernoulli draw conditioned on fraud label, then independent bit flip. No observed phone calls. |
+The numbers below describe a model that no longer exists. `validate_artifact()` rejects its
+artifacts, and the feature trace that produced them is superseded by
+[Module A correctness](../docs/MODULE_A_CORRECTNESS.md). They are kept only so the audit trail of
+*why* the features were removed is legible. **They are not current results and must not be quoted
+as such.**
 
-74,115 rows have incomplete history keys: velocity is zero (no inferred history),
-not a measured absence of activity. Historical holdout events may use earlier
-holdout transactions as observable history, never their labels or future events.
-TransactionID and TransactionDT are audit/split columns, not model features.
-There is no invented timestamp, beneficiary, overlay, device ID or extra feature.
+Removed features and why:
 
-## Assumptions and noise
+| Removed feature | Why it was removed |
+|---|---|
+| `hour_of_day` | `floor(TransactionDT / 3600) % 24` is a *relative* dataset phase, not local clock time; serving extracted a real UTC hour. |
+| `is_odd_hour` | Same defect, one level down; no verified nighttime semantics. |
+| `is_new_device` | IEEE-CIS establishes no device history, so the artifact's `device_counts` was empty and every API caller scored as new. |
+| `is_active_call` | Synthesised per row *conditioned on the label*, with independent 12.5% bit flips. It encoded the answer. |
+| `transaction_velocity` | Counted over a card tuple in the source; the UI supplied a per-device transfer count. Different entities, silently compared. |
 
-Tunable configuration: ml/module_a_priors.json, seed 42.
-
-| Synthetic flag | P(flag=1 given fraud) | P(flag=1 given legitimate) | Expected after noise (fraud / legitimate) |
-|---|---:|---:|---:|
-| is_active_call | 0.60 | 0.10 | 0.575 / 0.200 |
-| is_new_device | 0.45 | 0.15 | 0.4625 / 0.2375 |
-
-These are hypothetical scenario parameters authorized by the user, **not empirical
-estimates or probabilities supported by a citation**. Moderate call enrichment
-and weaker device enrichment test the hypothesis with overlap rather than nearly
-encoding the outcome. They do not describe measured IEEE-CIS behavior. Each flag
-is independently flipped with probability 0.125; effective probability is
-0.125 + 0.75*p. Observed flip rates: call 12.4935%, device 12.4493%.
-Real isFraud labels are never flipped. Noise does not guarantee imperfect F1;
-training refuses to publish a perfect-F1 artifact pending investigation.
-
-## Evaluation and ablation
-
-Chronological split at TransactionDT=12192900, with equal timestamps kept together:
-472,432 training rows (16,599 fraud), 118,108 held-out rows (4,064 fraud).
-Same XGBoost parameters and fixed 0.5 threshold in both arms: 100 trees, depth 4,
-learning rate 0.1, seed 42, hist trees; train-only negative/positive weight 27.46147.
-No tuning on the holdout. The saved six-feature model is fitted only to training
-rows; no refit incorporating held-out labels. Ablation removes both synthetic flags.
+Historical chronological holdout (split at `TransactionDT=12192900`, equal timestamps kept
+together; 472,432 train / 118,108 test; same XGBoost parameters and 0.5 threshold in both arms):
 
 | Model | Precision | Recall | F1 | FPR |
 |---|---:|---:|---:|---:|
 | With synthetic telemetry | 0.088106 | 0.686270 | 0.156163 | 0.253113 |
 | Without synthetic telemetry | 0.058757 | 0.572343 | 0.106573 | 0.326725 |
 
-Recall delta: **+0.113927 (+11.39 percentage points)**. With telemetry:
-TN=85178, FP=28866, FN=1275, TP=2789. Without: TN=76783, FP=37261, FN=1738, TP=2326.
-The gain is manufactured by the assumed label-conditioned signals in train AND test,
-not evidence of real call telemetry effectiveness. Precision is poor and FPR is high.
-Class weighting makes scores unsuitable as calibrated fraud probabilities.
-The four-feature ablation uses only real-derived inputs, but still has proxy/domain
-limitations and does not establish deployment performance. Neither model is perfect.
+The +11.39 pp recall delta is **manufactured** by the assumed label-conditioned signals present in
+train *and* test. Class weighting makes the scores unsuitable as calibrated probabilities. The
+hypothetical priors that produced them (`ml/module_a_priors.json`) were deleted; no reader remained
+once the features were removed.
 
-## Reproduction and operational limits
+The stale `ml/models/module_a.metrics.json` report from that era was also removed, so no reader can
+mistake it for a current artifact description. The figures above are the record.
 
-From the repo root, with the authorized source files already in data/raw/ieee_cis:
+## Reproduction
+
+Once the authorized source is available, run from the repository root:
 
 ```powershell
-python ml/generate_module_a_data.py
-python ml/train_module_a.py
-python -m pytest tests/test_module_a.py tests/test_module_a_data.py -q
+.\.venv\Scripts\python.exe ml\generate_module_a_data.py --source <authorized-train_transaction.csv>
+.\.venv\Scripts\python.exe ml\train_module_a.py
 ```
 
-The generator preserves a backup of an existing CSV. Training preserves the old
-model as an ignored .pkl backup. Source/data hashes, realized telemetry rates and
-configuration are recorded in data/raw/module_a_transactions.metadata.json and
-ml/models/module_a.metrics.json. Changing source data requires regeneration.
-A fresh clone/build needs the authorized source, or the generated CSV plus its
-metadata; there is no fallback to fabricated financial data.
+Generation validates the source and records SHA-256 hashes plus the feature contract. Training
+rejects old generated-data contracts and uses the same chronological 80/20 split, XGBoost
+parameters, class weighting and 0.5 evaluation threshold as before, so a feature fix is not mixed
+with a tuning change. Model and report backups preserve previous results. Restart a running backend
+after retraining to clear its model cache.
 
-The predictor and six-feature input contract are unchanged. For explicit device
-novelty use the existing is_new_device field. device_counts is empty because this
-source does not provide the deployment's device history; the existing device_id
-fallback therefore treats any supplied ID as unfamiliar. The existing API may not
-expose explicit novelty; that limitation is not resolved in this phase. Runtime
-clock time and manually supplied velocity differ from training proxies. Restart
-an already-running backend to clear its model cache after retraining.
+Compare real metrics only after training on the same authorized data; never infer them from the
+regression fixtures, which are invented unit-test data created inside pytest's temporary directory.
 
-Old handpicked amount-boundary demos are invalid. Phase 3 updated Module D
-regression expectations using the current model outputs, without changing Module A.
+## Operational limits
+
+The predictor and the one-feature input contract are unchanged since the rewrite. Runtime clock time
+and manually supplied velocity differ from anything in training and are ignored entirely.
+`device_id` is optional legacy metadata with no effect on the score. Old hand-picked amount-boundary
+demos are invalid.
+
+Restoring real transaction assessment requires labelled data with justified units and features;
+restoring transaction fusion additionally requires compatible retraining and evaluation of Module D
+(see [ADR-006](../docs/decision_log.md)).
 
 ## Module D synthetic joint data
 
-See [Module D datasheet](MODULE_D_DATASHEET.md): actual module outputs are paired
-synthetically with explicitly derived OR-policy labels. Its metrics are not
-real-world performance. The Android companion adds an optional real phone report
-at inference; it does not change the synthetic telemetry in Module A training.
+See [Module D datasheet](MODULE_D_DATASHEET.md). Its metrics are synthetic policy recovery, not
+real-world performance. The Android companion adds an optional real phone report at inference; it
+does not change anything in Module A training, and call state is not a model input.

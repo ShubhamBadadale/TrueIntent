@@ -1,8 +1,12 @@
 import importlib
 import joblib
 import pytest
+
+pytest.importorskip("fastapi", reason="fastapi required for API tests")
+pytest.importorskip("httpx", reason="httpx required for TestClient")
+
 from fastapi.testclient import TestClient
-from app.main import app
+from backend.app.main import app
 
 client = TestClient(app)
 BASE = dict(amount=500, amount_unit='ieee_cis_source')

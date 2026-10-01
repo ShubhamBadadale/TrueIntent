@@ -6,11 +6,7 @@ and assert coherence with the underlying modules. Needs fastapi/httpx
 (backend venv); skipped otherwise.
 """
 
-import os
-import sys
-
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "backend")))
+from pathlib import Path
 
 import pytest
 
@@ -19,12 +15,13 @@ httpx = pytest.importorskip("httpx", reason="httpx required for TestClient")
 
 from fastapi.testclient import TestClient
 
-from app.main import app
+from backend.app.main import app
 from ml.predict_module_b import check_url
 from ml.predict_module_c import analyze_message
 
 client = TestClient(app)
 
+ROOT = Path(__file__).resolve().parents[1]
 PHISH_URL = "http://hdfcbaank-login.xyz/update-kyc"
 IP_URL = "http://192.168.1.1/verify-account"
 SAFE_URL = "https://www.google.com/search?q=test"
@@ -66,6 +63,10 @@ def test_url_flow_safe_url_coherence():
 
 
 # --- 2. Message flow: Module C must trigger Module B internally ---------------
+@pytest.mark.skipif(
+    not (Path(__file__).resolve().parent.parent / "ml/models/module_c.pkl").exists(),
+    reason="Train Module C (ml/train_module_c.py) to run model-backed integration tests",
+)
 def test_message_with_embedded_url_folds_in_module_b():
     """Scam phrase + suspicious URL: signature from text, score reflects BOTH."""
     text = (
@@ -99,10 +100,15 @@ def test_combined_rejects_obsolete_transaction_fusion():
 # --- 4. Frontend wiring: portal calls the routes that exist -------------------
 def test_frontend_api_client_matches_backend_routes():
     """No-browser check that the React portal targets real backend endpoints."""
-    root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-    with open(os.path.join(root, "frontend", "src", "api.js"), encoding="utf-8") as f:
-        client_src = f.read()
-    route_paths = {r.path for r in app.routes if hasattr(r, "path")}
+    client_src = (ROOT / "frontend" / "src" / "api.js").read_text(encoding="utf-8")
+    # OpenAPI paths, not app.routes: included routers are represented
+    # opaquely on app.routes in current Starlette, while the schema lists the
+    # served, documented surface.
+    route_paths = set(app.openapi().get("paths", {}))
+    for endpoint in ("/check-url", "/check-message", "/check-transaction",
+                     "/api/v1/analyze/url", "/api/v1/analyze/message",
+                     "/api/v1/analyze/image", "/api/v1/analyze/combined",
+                     "/api/v1/module-a/benchmark", "/health", "/ready"):
+        assert endpoint in route_paths, f"Backend has no route {endpoint}"
     for endpoint in ("/check-url", "/check-message", "/check-transaction"):
         assert endpoint in client_src, f"Frontend api.js never calls {endpoint}"
-        assert endpoint in route_paths, f"Backend has no route {endpoint}"

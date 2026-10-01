@@ -6,8 +6,8 @@
     "f1": 0.8940783986655546,
     "roc_auc": 0.9617946643898201,
     "pr_auc": 0.9643634267273319,
-    "latency_ms_per_url": 0.16389255733431474,
-    "batch_latency_ms": 378.75569999960135,
+    "latency_ms_per_url": 0.11300419731753393,
+    "batch_latency_ms": 261.1527000008209,
     "confusion_matrix": [
       [
         985,
@@ -19,8 +19,8 @@
       ]
     ],
     "fpr": 0.14792387543252594,
-    "single_url_latency_ms_median": 1.5956500010361196,
-    "single_url_latency_ms_p95": 2.842099998815683
+    "single_url_latency_ms_median": 0.6289499997365056,
+    "single_url_latency_ms_p95": 1.0874850002437586
   },
   "evaluation": {
     "models": {
@@ -31,8 +31,8 @@
           "f1": 0.9095721217468019,
           "roc_auc": 0.9711133002512919,
           "pr_auc": 0.9751744885331275,
-          "latency_ms_per_url": 0.24956876640446907,
-          "batch_latency_ms": 570.5142000006163,
+          "latency_ms_per_url": 0.09715026246780953,
+          "batch_latency_ms": 222.08550000141258,
           "confusion_matrix": [
             [
               1050,
@@ -44,8 +44,8 @@
             ]
           ],
           "fpr": 0.08136482939632546,
-          "single_url_latency_ms_median": 1.8203999989054864,
-          "single_url_latency_ms_p95": 3.3076149982662164
+          "single_url_latency_ms_median": 0.5891499995414051,
+          "single_url_latency_ms_p95": 1.0134549994290862
         },
         "engineered": {
           "precision": 0.7702991452991453,
@@ -53,8 +53,8 @@
           "f1": 0.6936026936026936,
           "roc_auc": 0.7981651025030445,
           "pr_auc": 0.8273938795637064,
-          "latency_ms_per_url": 0.10300297462819126,
-          "batch_latency_ms": 235.46480000004522,
+          "latency_ms_per_url": 0.0692968066487449,
+          "batch_latency_ms": 158.41249999903084,
           "confusion_matrix": [
             [
               928,
@@ -66,8 +66,8 @@
             ]
           ],
           "fpr": 0.18810148731408574,
-          "single_url_latency_ms_median": 0.439049998021801,
-          "single_url_latency_ms_p95": 1.5446749986949722
+          "single_url_latency_ms_median": 0.5865500006621005,
+          "single_url_latency_ms_p95": 0.8408250000684346
         },
         "combined": {
           "precision": 0.9284420289855072,
@@ -75,8 +75,8 @@
           "f1": 0.9123275478415666,
           "roc_auc": 0.9715656715264047,
           "pr_auc": 0.9739825181716906,
-          "latency_ms_per_url": 0.27448788276515373,
-          "batch_latency_ms": 627.4793000011414,
+          "latency_ms_per_url": 0.2303367454071714,
+          "batch_latency_ms": 526.5498000007938,
           "confusion_matrix": [
             [
               1064,
@@ -88,8 +88,8 @@
             ]
           ],
           "fpr": 0.06911636045494313,
-          "single_url_latency_ms_median": 3.3917500004463363,
-          "single_url_latency_ms_p95": 6.202414998369931
+          "single_url_latency_ms_median": 2.198399999542744,
+          "single_url_latency_ms_p95": 4.467004999878553
         }
       },
       "registered_domain_disjoint_split": {
@@ -99,8 +99,8 @@
           "f1": 0.8940783986655546,
           "roc_auc": 0.9617946643898201,
           "pr_auc": 0.9643634267273319,
-          "latency_ms_per_url": 0.16389255733431474,
-          "batch_latency_ms": 378.75569999960135,
+          "latency_ms_per_url": 0.11300419731753393,
+          "batch_latency_ms": 261.1527000008209,
           "confusion_matrix": [
             [
               985,
@@ -112,8 +112,8 @@
             ]
           ],
           "fpr": 0.14792387543252594,
-          "single_url_latency_ms_median": 1.5956500010361196,
-          "single_url_latency_ms_p95": 2.842099998815683
+          "single_url_latency_ms_median": 0.6289499997365056,
+          "single_url_latency_ms_p95": 1.0874850002437586
         },
         "engineered": {
           "precision": 0.7883698760724499,
@@ -121,8 +121,8 @@
           "f1": 0.7504537205081669,
           "roc_auc": 0.8424796656630567,
           "pr_auc": 0.8759247907888422,
-          "latency_ms_per_url": 0.23332998701920082,
-          "batch_latency_ms": 539.2256000013731,
+          "latency_ms_per_url": 0.08123877109506956,
+          "batch_latency_ms": 187.74280000070576,
           "confusion_matrix": [
             [
               934,
@@ -134,8 +134,8 @@
             ]
           ],
           "fpr": 0.19204152249134948,
-          "single_url_latency_ms_median": 1.2240500000189058,
-          "single_url_latency_ms_p95": 2.016119999825605
+          "single_url_latency_ms_median": 0.3085000007558847,
+          "single_url_latency_ms_p95": 0.36704999984067394
         },
         "combined": {
           "precision": 0.8773978315262719,
@@ -143,8 +143,8 @@
           "f1": 0.8937977909940527,
           "roc_auc": 0.9624028220914034,
           "pr_auc": 0.9660685094894156,
-          "latency_ms_per_url": 0.39929943747344143,
-          "batch_latency_ms": 922.7810000011232,
+          "latency_ms_per_url": 0.2750257464300401,
+          "batch_latency_ms": 635.5844999998226,
           "confusion_matrix": [
             [
               1009,
@@ -156,8 +156,8 @@
             ]
           ],
           "fpr": 0.12716262975778547,
-          "single_url_latency_ms_median": 2.022650000071735,
-          "single_url_latency_ms_p95": 5.446670001037999
+          "single_url_latency_ms_median": 2.8824000000895467,
+          "single_url_latency_ms_p95": 4.6369649999178355
         }
       }
     },

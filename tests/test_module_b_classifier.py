@@ -6,6 +6,8 @@ import pandas as pd
 import pytest
 from sklearn.model_selection import train_test_split
 
+pytest.importorskip("sklearn", reason="scikit-learn required for classifier tests")
+
 from ml import predict_module_b as predictor
 from ml.generate_module_b_data import generate_module_b_data, validate_urls
 from ml.train_module_b import train_module_b
@@ -22,12 +24,12 @@ def real_artifact():
     return artifact
 
 
-@pytest.mark.parametrize("url,label", [
+@pytest.mark.parametrize("url", [
     # Historical examples for pipeline/API wiring, not accuracy assertions.
-    ("http://crackedtool.com/b/login.php?l=_JeHFUq_VJOXK0QWHtoGYDw1774256418&fid.13InboxLight.aspxn.1774256418&fid.125289964252813InboxLight99642_Product-userid&userid=", 1),
-    ("http://iwanarif.lecturer.pens.ac.id/2.%20network%20protocols.pdf", 0),
+    "http://crackedtool.com/b/login.php?l=_JeHFUq_VJOXK0QWHtoGYDw1774256418&fid.13InboxLight.aspxn.1774256418&fid.125289964252813InboxLight99642_Product-userid&userid=",
+    "http://iwanarif.lecturer.pens.ac.id/2.%20network%20protocols.pdf",
 ])
-def test_real_classifier_and_blend(real_artifact, monkeypatch, url, label):
+def test_real_classifier_and_blend(real_artifact, monkeypatch, url):
     pipeline = real_artifact["pipeline"]
     probability = pipeline.predict_proba([url])[0, list(pipeline.classes_).index(1)]
     assert 0 <= probability <= 1
@@ -57,7 +59,9 @@ def test_inference_failure_retains_rules(monkeypatch):
     monkeypatch.setattr(predictor, "_load_ml_model", lambda: {"pipeline": object()})
     result = predictor.check_url("http://192.168.1.1/verify-account", False)
     assert result["ml_status"] == "rules_only (ML inference failed)"
-    assert result["score"] == pytest.approx(0.6)
+    # Rules-only fallback: insecure HTTP (0.20) + raw IP (0.40) +
+    # private/internal target (0.25) + suspicious path/query (0.15), capped at 1.0.
+    assert result["score"] == pytest.approx(1.0)
 
 
 def test_loader_missing_and_corrupt_artifact(tmp_path, monkeypatch):

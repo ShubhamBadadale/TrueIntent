@@ -1,12 +1,12 @@
-import { checkCombined, checkMessageImage } from './api.js'
+import { IMAGE_TYPES, MAX_TEXT_LENGTH, MAX_URL_LENGTH, checkCombined, checkMessageImage } from './api.js'
 
-export const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/bmp']
 export const EMPTY_INPUT = { amount: '', when: '', velocity: '', call: '', text: '', url: '' }
 
 export function prepareCombinedInput(values, file) {
   const text = (values.text || '').trim()
   const rawUrl = (values.url || '').trim()
   const context = {}
+  if (text.length > MAX_TEXT_LENGTH) throw new Error('Message exceeds the 20,000 character limit.')
   for (const [field, label] of [['amount', 'Amount'], ['velocity', 'Transfers in the last hour']]) {
     const raw = (values[field] ?? '').toString().trim()
     if (!raw) continue
@@ -26,7 +26,7 @@ export function prepareCombinedInput(values, file) {
   let url
   if (rawUrl) {
     try {
-      if (/\s/.test(rawUrl)) throw new Error()
+      if (/\s/.test(rawUrl) || rawUrl.length > MAX_URL_LENGTH) throw new Error()
       const candidate = new URL(rawUrl.includes('://') ? rawUrl : `https://${rawUrl}`)
       if (!['http:', 'https:'].includes(candidate.protocol) || !candidate.hostname.includes('.')) throw new Error()
       url = candidate.href

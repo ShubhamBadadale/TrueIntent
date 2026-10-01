@@ -4,6 +4,7 @@ import joblib
 import numpy as np
 
 from ml.features_module_a import (
+    ModuleAIncompatibleError,
     ModuleAUnavailableError, transaction_features, validate_artifact,
 )
 
@@ -29,6 +30,8 @@ def load_model(model_path: str = None):
         try:
             artifact = joblib.load(path)
             validate_artifact(artifact)
+        except ModuleAIncompatibleError:
+            raise
         except ModuleAUnavailableError:
             raise
         except Exception as exc:
@@ -42,7 +45,10 @@ def predict_module_a(transaction_dict: dict, model_path: str = None) -> float:
     # Validate semantics before loading: missing artifacts must not hide INR misuse.
     features = transaction_features(transaction_dict)
     artifact = load_model(model_path)
-    score = float(artifact['model'].predict_proba(features)[0, 1])
+    try:
+        score = float(artifact['model'].predict_proba(features)[0, 1])
+    except Exception as exc:
+        raise ModuleAIncompatibleError('Module A model is incompatible with its feature contract.') from exc
     if not np.isfinite(score) or not 0 <= score <= 1:
-        raise ModuleAUnavailableError('Module A returned an invalid benchmark score.')
+        raise ModuleAIncompatibleError('Module A returned an invalid benchmark score.')
     return score

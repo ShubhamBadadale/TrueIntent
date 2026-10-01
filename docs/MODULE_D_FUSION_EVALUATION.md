@@ -153,7 +153,7 @@ real incident data. CSV/model artifacts are gitignored; metrics are tracked.
   `frontend/src/components/CombinedResults.jsx`, `frontend/tests/combined.test.mjs`
 - `tests/test_module_d_interactions.py`, `data/MODULE_D_DATASHEET.md`, this report
 
-Verification: **46 backend/ML tests and 12 frontend tests passed; frontend build
+Verification: **46 ml tests and 12 frontend tests passed; frontend build
 passed**. A non-fatal Windows Vite temporary-cache cleanup warning appeared;
 backend warnings were existing Starlette/AnyIO deprecations. No A/B/C model was
 retrained for this task. Earlier unrelated worktree changes remain untouched.
