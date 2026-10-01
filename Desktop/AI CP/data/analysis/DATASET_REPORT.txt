@@ -1,0 +1,65 @@
+================================================================================
+DATASET ANALYSIS REPORT
+Multi-Layer AI Scam Detection System
+================================================================================
+
+EXECUTIVE SUMMARY
+--------------------------------------------------------------------------------
+Total Datasets Created: 7
+Total Training Samples: 1012
+Languages Supported: English, Hindi, Hinglish
+Data Quality: Clean, deduplicated, validated
+
+DATASET DETAILS
+--------------------------------------------------------------------------------
+
+SMS Spam Dataset
+  Samples: 200
+  Columns: source, text, label
+  Labels: spam, ham
+
+Hinglish Corpus
+  Samples: 150
+  Columns: source, text, label
+  Labels: legitimate, scam
+
+Obfuscation Patterns
+  Samples: 50
+  Columns: source, text, label
+  Labels: scam
+
+Multi-Turn Conversations
+  Samples: 10
+  Columns: conversation_id, turn, text, label
+  Labels: scam
+
+Vishing Call Transcripts
+  Samples: 2
+  Columns: call_id, transcript, label, tactics
+  Labels: scam
+
+Psychological Tactics
+  Samples: 300
+  Columns: source, text, tactic, label
+  Labels: scam
+
+UPI Protocol Rules
+  Samples: 300
+  Columns: rule_id, intent, action, is_contradiction, severity, explanation
+
+LANGUAGE DISTRIBUTION
+--------------------------------------------------------------------------------
+English: 533 samples (52.7%)
+Hinglish: 156 samples (15.4%)
+Hindi: 21 samples (2.1%)
+
+LABEL DISTRIBUTION
+--------------------------------------------------------------------------------
+scam: 462 samples (45.7%)
+spam: 100 samples (9.9%)
+ham: 100 samples (9.9%)
+legitimate: 50 samples (4.9%)
+
+================================================================================
+END OF REPORT
+================================================================================
