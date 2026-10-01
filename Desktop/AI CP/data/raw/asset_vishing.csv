@@ -1,0 +1,3 @@
+call_id,transcript,label,tactics
+call_1,"Hello sir, I'm calling from SBI fraud department. There's suspicious activity on your account. Please don't hang up. I need you to verify your account by sharing OTP.",scam,"authority,urgency,isolation"
+call_2,This is Amazon customer service. Your Prime membership is expiring. Please stay on line while I renew it. I'll need your card CVV for verification.,scam,"authority,coerced_action"

@@ -1,0 +1,11 @@
+conversation_id,turn,text,label
+cova_x_conv_1,Turn_1_external,"Hello, this is from SBI customer care.",scam
+cova_x_conv_1,Turn_2_user,"Yes, how can I help you?",scam
+cova_x_conv_1,Turn_3_external,We need to update your KYC details for security.,scam
+cova_x_conv_1,Turn_4_user,"Okay, what do I need to do?",scam
+cova_x_conv_1,Turn_5_external,Please click this link bit.ly/sbi-kyc and enter your card details.,scam
+cova_x_conv_2,Turn_1_external,Congratulations! You've won Rs 50000.,scam
+cova_x_conv_2,Turn_2_user,Really? How?,scam
+cova_x_conv_2,Turn_3_external,You were selected in our lucky draw. Just pay Rs 500 processing fee.,scam
+cova_x_conv_2,Turn_4_user,Where should I pay?,scam
+cova_x_conv_2,Turn_5_external,Send to this UPI ID: scammer@paytm. Don't tell anyone or prize cancelled.,scam

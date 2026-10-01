@@ -1,0 +1,301 @@
+rule_id,intent,action,is_contradiction,severity,explanation
+rule_0,receive_money,enter_pin,True,CRITICAL,PIN only needed to SEND money
+rule_1,receive_money,enter_pin,True,CRITICAL,PIN only needed to SEND money
+rule_2,receive_money,enter_pin,True,CRITICAL,PIN only needed to SEND money
+rule_3,receive_money,enter_pin,True,CRITICAL,PIN only needed to SEND money
+rule_4,receive_money,enter_pin,True,CRITICAL,PIN only needed to SEND money
+rule_5,receive_money,enter_pin,True,CRITICAL,PIN only needed to SEND money
+rule_6,receive_money,enter_pin,True,CRITICAL,PIN only needed to SEND money
+rule_7,receive_money,enter_pin,True,CRITICAL,PIN only needed to SEND money
+rule_8,receive_money,enter_pin,True,CRITICAL,PIN only needed to SEND money
+rule_9,receive_money,enter_pin,True,CRITICAL,PIN only needed to SEND money
+rule_10,receive_money,enter_pin,True,CRITICAL,PIN only needed to SEND money
+rule_11,receive_money,enter_pin,True,CRITICAL,PIN only needed to SEND money
+rule_12,receive_money,enter_pin,True,CRITICAL,PIN only needed to SEND money
+rule_13,receive_money,enter_pin,True,CRITICAL,PIN only needed to SEND money
+rule_14,receive_money,enter_pin,True,CRITICAL,PIN only needed to SEND money
+rule_15,receive_money,enter_pin,True,CRITICAL,PIN only needed to SEND money
+rule_16,receive_money,enter_pin,True,CRITICAL,PIN only needed to SEND money
+rule_17,receive_money,enter_pin,True,CRITICAL,PIN only needed to SEND money
+rule_18,receive_money,enter_pin,True,CRITICAL,PIN only needed to SEND money
+rule_19,receive_money,enter_pin,True,CRITICAL,PIN only needed to SEND money
+rule_20,receive_money,enter_pin,True,CRITICAL,PIN only needed to SEND money
+rule_21,receive_money,enter_pin,True,CRITICAL,PIN only needed to SEND money
+rule_22,receive_money,enter_pin,True,CRITICAL,PIN only needed to SEND money
+rule_23,receive_money,enter_pin,True,CRITICAL,PIN only needed to SEND money
+rule_24,receive_money,enter_pin,True,CRITICAL,PIN only needed to SEND money
+rule_25,receive_money,enter_pin,True,CRITICAL,PIN only needed to SEND money
+rule_26,receive_money,enter_pin,True,CRITICAL,PIN only needed to SEND money
+rule_27,receive_money,enter_pin,True,CRITICAL,PIN only needed to SEND money
+rule_28,receive_money,enter_pin,True,CRITICAL,PIN only needed to SEND money
+rule_29,receive_money,enter_pin,True,CRITICAL,PIN only needed to SEND money
+rule_30,receive_money,enter_pin,True,CRITICAL,PIN only needed to SEND money
+rule_31,receive_money,enter_pin,True,CRITICAL,PIN only needed to SEND money
+rule_32,receive_money,enter_pin,True,CRITICAL,PIN only needed to SEND money
+rule_33,receive_money,enter_pin,True,CRITICAL,PIN only needed to SEND money
+rule_34,receive_money,enter_pin,True,CRITICAL,PIN only needed to SEND money
+rule_35,receive_money,enter_pin,True,CRITICAL,PIN only needed to SEND money
+rule_36,receive_money,enter_pin,True,CRITICAL,PIN only needed to SEND money
+rule_37,receive_money,enter_pin,True,CRITICAL,PIN only needed to SEND money
+rule_38,receive_money,enter_pin,True,CRITICAL,PIN only needed to SEND money
+rule_39,receive_money,enter_pin,True,CRITICAL,PIN only needed to SEND money
+rule_40,receive_money,enter_pin,True,CRITICAL,PIN only needed to SEND money
+rule_41,receive_money,enter_pin,True,CRITICAL,PIN only needed to SEND money
+rule_42,receive_money,enter_pin,True,CRITICAL,PIN only needed to SEND money
+rule_43,receive_money,enter_pin,True,CRITICAL,PIN only needed to SEND money
+rule_44,receive_money,enter_pin,True,CRITICAL,PIN only needed to SEND money
+rule_45,receive_money,enter_pin,True,CRITICAL,PIN only needed to SEND money
+rule_46,receive_money,enter_pin,True,CRITICAL,PIN only needed to SEND money
+rule_47,receive_money,enter_pin,True,CRITICAL,PIN only needed to SEND money
+rule_48,receive_money,enter_pin,True,CRITICAL,PIN only needed to SEND money
+rule_49,receive_money,enter_pin,True,CRITICAL,PIN only needed to SEND money
+rule_0,refund,approve_collect_request,True,CRITICAL,Never approve collect request to receive
+rule_1,refund,approve_collect_request,True,CRITICAL,Never approve collect request to receive
+rule_2,refund,approve_collect_request,True,CRITICAL,Never approve collect request to receive
+rule_3,refund,approve_collect_request,True,CRITICAL,Never approve collect request to receive
+rule_4,refund,approve_collect_request,True,CRITICAL,Never approve collect request to receive
+rule_5,refund,approve_collect_request,True,CRITICAL,Never approve collect request to receive
+rule_6,refund,approve_collect_request,True,CRITICAL,Never approve collect request to receive
+rule_7,refund,approve_collect_request,True,CRITICAL,Never approve collect request to receive
+rule_8,refund,approve_collect_request,True,CRITICAL,Never approve collect request to receive
+rule_9,refund,approve_collect_request,True,CRITICAL,Never approve collect request to receive
+rule_10,refund,approve_collect_request,True,CRITICAL,Never approve collect request to receive
+rule_11,refund,approve_collect_request,True,CRITICAL,Never approve collect request to receive
+rule_12,refund,approve_collect_request,True,CRITICAL,Never approve collect request to receive
+rule_13,refund,approve_collect_request,True,CRITICAL,Never approve collect request to receive
+rule_14,refund,approve_collect_request,True,CRITICAL,Never approve collect request to receive
+rule_15,refund,approve_collect_request,True,CRITICAL,Never approve collect request to receive
+rule_16,refund,approve_collect_request,True,CRITICAL,Never approve collect request to receive
+rule_17,refund,approve_collect_request,True,CRITICAL,Never approve collect request to receive
+rule_18,refund,approve_collect_request,True,CRITICAL,Never approve collect request to receive
+rule_19,refund,approve_collect_request,True,CRITICAL,Never approve collect request to receive
+rule_20,refund,approve_collect_request,True,CRITICAL,Never approve collect request to receive
+rule_21,refund,approve_collect_request,True,CRITICAL,Never approve collect request to receive
+rule_22,refund,approve_collect_request,True,CRITICAL,Never approve collect request to receive
+rule_23,refund,approve_collect_request,True,CRITICAL,Never approve collect request to receive
+rule_24,refund,approve_collect_request,True,CRITICAL,Never approve collect request to receive
+rule_25,refund,approve_collect_request,True,CRITICAL,Never approve collect request to receive
+rule_26,refund,approve_collect_request,True,CRITICAL,Never approve collect request to receive
+rule_27,refund,approve_collect_request,True,CRITICAL,Never approve collect request to receive
+rule_28,refund,approve_collect_request,True,CRITICAL,Never approve collect request to receive
+rule_29,refund,approve_collect_request,True,CRITICAL,Never approve collect request to receive
+rule_30,refund,approve_collect_request,True,CRITICAL,Never approve collect request to receive
+rule_31,refund,approve_collect_request,True,CRITICAL,Never approve collect request to receive
+rule_32,refund,approve_collect_request,True,CRITICAL,Never approve collect request to receive
+rule_33,refund,approve_collect_request,True,CRITICAL,Never approve collect request to receive
+rule_34,refund,approve_collect_request,True,CRITICAL,Never approve collect request to receive
+rule_35,refund,approve_collect_request,True,CRITICAL,Never approve collect request to receive
+rule_36,refund,approve_collect_request,True,CRITICAL,Never approve collect request to receive
+rule_37,refund,approve_collect_request,True,CRITICAL,Never approve collect request to receive
+rule_38,refund,approve_collect_request,True,CRITICAL,Never approve collect request to receive
+rule_39,refund,approve_collect_request,True,CRITICAL,Never approve collect request to receive
+rule_40,refund,approve_collect_request,True,CRITICAL,Never approve collect request to receive
+rule_41,refund,approve_collect_request,True,CRITICAL,Never approve collect request to receive
+rule_42,refund,approve_collect_request,True,CRITICAL,Never approve collect request to receive
+rule_43,refund,approve_collect_request,True,CRITICAL,Never approve collect request to receive
+rule_44,refund,approve_collect_request,True,CRITICAL,Never approve collect request to receive
+rule_45,refund,approve_collect_request,True,CRITICAL,Never approve collect request to receive
+rule_46,refund,approve_collect_request,True,CRITICAL,Never approve collect request to receive
+rule_47,refund,approve_collect_request,True,CRITICAL,Never approve collect request to receive
+rule_48,refund,approve_collect_request,True,CRITICAL,Never approve collect request to receive
+rule_49,refund,approve_collect_request,True,CRITICAL,Never approve collect request to receive
+rule_0,verify_identity,download_apk,True,CRITICAL,No APK needed for verification
+rule_1,verify_identity,download_apk,True,CRITICAL,No APK needed for verification
+rule_2,verify_identity,download_apk,True,CRITICAL,No APK needed for verification
+rule_3,verify_identity,download_apk,True,CRITICAL,No APK needed for verification
+rule_4,verify_identity,download_apk,True,CRITICAL,No APK needed for verification
+rule_5,verify_identity,download_apk,True,CRITICAL,No APK needed for verification
+rule_6,verify_identity,download_apk,True,CRITICAL,No APK needed for verification
+rule_7,verify_identity,download_apk,True,CRITICAL,No APK needed for verification
+rule_8,verify_identity,download_apk,True,CRITICAL,No APK needed for verification
+rule_9,verify_identity,download_apk,True,CRITICAL,No APK needed for verification
+rule_10,verify_identity,download_apk,True,CRITICAL,No APK needed for verification
+rule_11,verify_identity,download_apk,True,CRITICAL,No APK needed for verification
+rule_12,verify_identity,download_apk,True,CRITICAL,No APK needed for verification
+rule_13,verify_identity,download_apk,True,CRITICAL,No APK needed for verification
+rule_14,verify_identity,download_apk,True,CRITICAL,No APK needed for verification
+rule_15,verify_identity,download_apk,True,CRITICAL,No APK needed for verification
+rule_16,verify_identity,download_apk,True,CRITICAL,No APK needed for verification
+rule_17,verify_identity,download_apk,True,CRITICAL,No APK needed for verification
+rule_18,verify_identity,download_apk,True,CRITICAL,No APK needed for verification
+rule_19,verify_identity,download_apk,True,CRITICAL,No APK needed for verification
+rule_20,verify_identity,download_apk,True,CRITICAL,No APK needed for verification
+rule_21,verify_identity,download_apk,True,CRITICAL,No APK needed for verification
+rule_22,verify_identity,download_apk,True,CRITICAL,No APK needed for verification
+rule_23,verify_identity,download_apk,True,CRITICAL,No APK needed for verification
+rule_24,verify_identity,download_apk,True,CRITICAL,No APK needed for verification
+rule_25,verify_identity,download_apk,True,CRITICAL,No APK needed for verification
+rule_26,verify_identity,download_apk,True,CRITICAL,No APK needed for verification
+rule_27,verify_identity,download_apk,True,CRITICAL,No APK needed for verification
+rule_28,verify_identity,download_apk,True,CRITICAL,No APK needed for verification
+rule_29,verify_identity,download_apk,True,CRITICAL,No APK needed for verification
+rule_30,verify_identity,download_apk,True,CRITICAL,No APK needed for verification
+rule_31,verify_identity,download_apk,True,CRITICAL,No APK needed for verification
+rule_32,verify_identity,download_apk,True,CRITICAL,No APK needed for verification
+rule_33,verify_identity,download_apk,True,CRITICAL,No APK needed for verification
+rule_34,verify_identity,download_apk,True,CRITICAL,No APK needed for verification
+rule_35,verify_identity,download_apk,True,CRITICAL,No APK needed for verification
+rule_36,verify_identity,download_apk,True,CRITICAL,No APK needed for verification
+rule_37,verify_identity,download_apk,True,CRITICAL,No APK needed for verification
+rule_38,verify_identity,download_apk,True,CRITICAL,No APK needed for verification
+rule_39,verify_identity,download_apk,True,CRITICAL,No APK needed for verification
+rule_40,verify_identity,download_apk,True,CRITICAL,No APK needed for verification
+rule_41,verify_identity,download_apk,True,CRITICAL,No APK needed for verification
+rule_42,verify_identity,download_apk,True,CRITICAL,No APK needed for verification
+rule_43,verify_identity,download_apk,True,CRITICAL,No APK needed for verification
+rule_44,verify_identity,download_apk,True,CRITICAL,No APK needed for verification
+rule_45,verify_identity,download_apk,True,CRITICAL,No APK needed for verification
+rule_46,verify_identity,download_apk,True,CRITICAL,No APK needed for verification
+rule_47,verify_identity,download_apk,True,CRITICAL,No APK needed for verification
+rule_48,verify_identity,download_apk,True,CRITICAL,No APK needed for verification
+rule_49,verify_identity,download_apk,True,CRITICAL,No APK needed for verification
+rule_0,check_balance,enter_cvv,True,HIGH,CVV not needed for balance check
+rule_1,check_balance,enter_cvv,True,HIGH,CVV not needed for balance check
+rule_2,check_balance,enter_cvv,True,HIGH,CVV not needed for balance check
+rule_3,check_balance,enter_cvv,True,HIGH,CVV not needed for balance check
+rule_4,check_balance,enter_cvv,True,HIGH,CVV not needed for balance check
+rule_5,check_balance,enter_cvv,True,HIGH,CVV not needed for balance check
+rule_6,check_balance,enter_cvv,True,HIGH,CVV not needed for balance check
+rule_7,check_balance,enter_cvv,True,HIGH,CVV not needed for balance check
+rule_8,check_balance,enter_cvv,True,HIGH,CVV not needed for balance check
+rule_9,check_balance,enter_cvv,True,HIGH,CVV not needed for balance check
+rule_10,check_balance,enter_cvv,True,HIGH,CVV not needed for balance check
+rule_11,check_balance,enter_cvv,True,HIGH,CVV not needed for balance check
+rule_12,check_balance,enter_cvv,True,HIGH,CVV not needed for balance check
+rule_13,check_balance,enter_cvv,True,HIGH,CVV not needed for balance check
+rule_14,check_balance,enter_cvv,True,HIGH,CVV not needed for balance check
+rule_15,check_balance,enter_cvv,True,HIGH,CVV not needed for balance check
+rule_16,check_balance,enter_cvv,True,HIGH,CVV not needed for balance check
+rule_17,check_balance,enter_cvv,True,HIGH,CVV not needed for balance check
+rule_18,check_balance,enter_cvv,True,HIGH,CVV not needed for balance check
+rule_19,check_balance,enter_cvv,True,HIGH,CVV not needed for balance check
+rule_20,check_balance,enter_cvv,True,HIGH,CVV not needed for balance check
+rule_21,check_balance,enter_cvv,True,HIGH,CVV not needed for balance check
+rule_22,check_balance,enter_cvv,True,HIGH,CVV not needed for balance check
+rule_23,check_balance,enter_cvv,True,HIGH,CVV not needed for balance check
+rule_24,check_balance,enter_cvv,True,HIGH,CVV not needed for balance check
+rule_25,check_balance,enter_cvv,True,HIGH,CVV not needed for balance check
+rule_26,check_balance,enter_cvv,True,HIGH,CVV not needed for balance check
+rule_27,check_balance,enter_cvv,True,HIGH,CVV not needed for balance check
+rule_28,check_balance,enter_cvv,True,HIGH,CVV not needed for balance check
+rule_29,check_balance,enter_cvv,True,HIGH,CVV not needed for balance check
+rule_30,check_balance,enter_cvv,True,HIGH,CVV not needed for balance check
+rule_31,check_balance,enter_cvv,True,HIGH,CVV not needed for balance check
+rule_32,check_balance,enter_cvv,True,HIGH,CVV not needed for balance check
+rule_33,check_balance,enter_cvv,True,HIGH,CVV not needed for balance check
+rule_34,check_balance,enter_cvv,True,HIGH,CVV not needed for balance check
+rule_35,check_balance,enter_cvv,True,HIGH,CVV not needed for balance check
+rule_36,check_balance,enter_cvv,True,HIGH,CVV not needed for balance check
+rule_37,check_balance,enter_cvv,True,HIGH,CVV not needed for balance check
+rule_38,check_balance,enter_cvv,True,HIGH,CVV not needed for balance check
+rule_39,check_balance,enter_cvv,True,HIGH,CVV not needed for balance check
+rule_40,check_balance,enter_cvv,True,HIGH,CVV not needed for balance check
+rule_41,check_balance,enter_cvv,True,HIGH,CVV not needed for balance check
+rule_42,check_balance,enter_cvv,True,HIGH,CVV not needed for balance check
+rule_43,check_balance,enter_cvv,True,HIGH,CVV not needed for balance check
+rule_44,check_balance,enter_cvv,True,HIGH,CVV not needed for balance check
+rule_45,check_balance,enter_cvv,True,HIGH,CVV not needed for balance check
+rule_46,check_balance,enter_cvv,True,HIGH,CVV not needed for balance check
+rule_47,check_balance,enter_cvv,True,HIGH,CVV not needed for balance check
+rule_48,check_balance,enter_cvv,True,HIGH,CVV not needed for balance check
+rule_49,check_balance,enter_cvv,True,HIGH,CVV not needed for balance check
+rule_0,send_money,enter_pin,False,SAFE,Normal UPI transaction
+rule_1,send_money,enter_pin,False,SAFE,Normal UPI transaction
+rule_2,send_money,enter_pin,False,SAFE,Normal UPI transaction
+rule_3,send_money,enter_pin,False,SAFE,Normal UPI transaction
+rule_4,send_money,enter_pin,False,SAFE,Normal UPI transaction
+rule_5,send_money,enter_pin,False,SAFE,Normal UPI transaction
+rule_6,send_money,enter_pin,False,SAFE,Normal UPI transaction
+rule_7,send_money,enter_pin,False,SAFE,Normal UPI transaction
+rule_8,send_money,enter_pin,False,SAFE,Normal UPI transaction
+rule_9,send_money,enter_pin,False,SAFE,Normal UPI transaction
+rule_10,send_money,enter_pin,False,SAFE,Normal UPI transaction
+rule_11,send_money,enter_pin,False,SAFE,Normal UPI transaction
+rule_12,send_money,enter_pin,False,SAFE,Normal UPI transaction
+rule_13,send_money,enter_pin,False,SAFE,Normal UPI transaction
+rule_14,send_money,enter_pin,False,SAFE,Normal UPI transaction
+rule_15,send_money,enter_pin,False,SAFE,Normal UPI transaction
+rule_16,send_money,enter_pin,False,SAFE,Normal UPI transaction
+rule_17,send_money,enter_pin,False,SAFE,Normal UPI transaction
+rule_18,send_money,enter_pin,False,SAFE,Normal UPI transaction
+rule_19,send_money,enter_pin,False,SAFE,Normal UPI transaction
+rule_20,send_money,enter_pin,False,SAFE,Normal UPI transaction
+rule_21,send_money,enter_pin,False,SAFE,Normal UPI transaction
+rule_22,send_money,enter_pin,False,SAFE,Normal UPI transaction
+rule_23,send_money,enter_pin,False,SAFE,Normal UPI transaction
+rule_24,send_money,enter_pin,False,SAFE,Normal UPI transaction
+rule_25,send_money,enter_pin,False,SAFE,Normal UPI transaction
+rule_26,send_money,enter_pin,False,SAFE,Normal UPI transaction
+rule_27,send_money,enter_pin,False,SAFE,Normal UPI transaction
+rule_28,send_money,enter_pin,False,SAFE,Normal UPI transaction
+rule_29,send_money,enter_pin,False,SAFE,Normal UPI transaction
+rule_30,send_money,enter_pin,False,SAFE,Normal UPI transaction
+rule_31,send_money,enter_pin,False,SAFE,Normal UPI transaction
+rule_32,send_money,enter_pin,False,SAFE,Normal UPI transaction
+rule_33,send_money,enter_pin,False,SAFE,Normal UPI transaction
+rule_34,send_money,enter_pin,False,SAFE,Normal UPI transaction
+rule_35,send_money,enter_pin,False,SAFE,Normal UPI transaction
+rule_36,send_money,enter_pin,False,SAFE,Normal UPI transaction
+rule_37,send_money,enter_pin,False,SAFE,Normal UPI transaction
+rule_38,send_money,enter_pin,False,SAFE,Normal UPI transaction
+rule_39,send_money,enter_pin,False,SAFE,Normal UPI transaction
+rule_40,send_money,enter_pin,False,SAFE,Normal UPI transaction
+rule_41,send_money,enter_pin,False,SAFE,Normal UPI transaction
+rule_42,send_money,enter_pin,False,SAFE,Normal UPI transaction
+rule_43,send_money,enter_pin,False,SAFE,Normal UPI transaction
+rule_44,send_money,enter_pin,False,SAFE,Normal UPI transaction
+rule_45,send_money,enter_pin,False,SAFE,Normal UPI transaction
+rule_46,send_money,enter_pin,False,SAFE,Normal UPI transaction
+rule_47,send_money,enter_pin,False,SAFE,Normal UPI transaction
+rule_48,send_money,enter_pin,False,SAFE,Normal UPI transaction
+rule_49,send_money,enter_pin,False,SAFE,Normal UPI transaction
+rule_0,receive_money,view_notification,False,SAFE,Normal receive flow
+rule_1,receive_money,view_notification,False,SAFE,Normal receive flow
+rule_2,receive_money,view_notification,False,SAFE,Normal receive flow
+rule_3,receive_money,view_notification,False,SAFE,Normal receive flow
+rule_4,receive_money,view_notification,False,SAFE,Normal receive flow
+rule_5,receive_money,view_notification,False,SAFE,Normal receive flow
+rule_6,receive_money,view_notification,False,SAFE,Normal receive flow
+rule_7,receive_money,view_notification,False,SAFE,Normal receive flow
+rule_8,receive_money,view_notification,False,SAFE,Normal receive flow
+rule_9,receive_money,view_notification,False,SAFE,Normal receive flow
+rule_10,receive_money,view_notification,False,SAFE,Normal receive flow
+rule_11,receive_money,view_notification,False,SAFE,Normal receive flow
+rule_12,receive_money,view_notification,False,SAFE,Normal receive flow
+rule_13,receive_money,view_notification,False,SAFE,Normal receive flow
+rule_14,receive_money,view_notification,False,SAFE,Normal receive flow
+rule_15,receive_money,view_notification,False,SAFE,Normal receive flow
+rule_16,receive_money,view_notification,False,SAFE,Normal receive flow
+rule_17,receive_money,view_notification,False,SAFE,Normal receive flow
+rule_18,receive_money,view_notification,False,SAFE,Normal receive flow
+rule_19,receive_money,view_notification,False,SAFE,Normal receive flow
+rule_20,receive_money,view_notification,False,SAFE,Normal receive flow
+rule_21,receive_money,view_notification,False,SAFE,Normal receive flow
+rule_22,receive_money,view_notification,False,SAFE,Normal receive flow
+rule_23,receive_money,view_notification,False,SAFE,Normal receive flow
+rule_24,receive_money,view_notification,False,SAFE,Normal receive flow
+rule_25,receive_money,view_notification,False,SAFE,Normal receive flow
+rule_26,receive_money,view_notification,False,SAFE,Normal receive flow
+rule_27,receive_money,view_notification,False,SAFE,Normal receive flow
+rule_28,receive_money,view_notification,False,SAFE,Normal receive flow
+rule_29,receive_money,view_notification,False,SAFE,Normal receive flow
+rule_30,receive_money,view_notification,False,SAFE,Normal receive flow
+rule_31,receive_money,view_notification,False,SAFE,Normal receive flow
+rule_32,receive_money,view_notification,False,SAFE,Normal receive flow
+rule_33,receive_money,view_notification,False,SAFE,Normal receive flow
+rule_34,receive_money,view_notification,False,SAFE,Normal receive flow
+rule_35,receive_money,view_notification,False,SAFE,Normal receive flow
+rule_36,receive_money,view_notification,False,SAFE,Normal receive flow
+rule_37,receive_money,view_notification,False,SAFE,Normal receive flow
+rule_38,receive_money,view_notification,False,SAFE,Normal receive flow
+rule_39,receive_money,view_notification,False,SAFE,Normal receive flow
+rule_40,receive_money,view_notification,False,SAFE,Normal receive flow
+rule_41,receive_money,view_notification,False,SAFE,Normal receive flow
+rule_42,receive_money,view_notification,False,SAFE,Normal receive flow
+rule_43,receive_money,view_notification,False,SAFE,Normal receive flow
+rule_44,receive_money,view_notification,False,SAFE,Normal receive flow
+rule_45,receive_money,view_notification,False,SAFE,Normal receive flow
+rule_46,receive_money,view_notification,False,SAFE,Normal receive flow
+rule_47,receive_money,view_notification,False,SAFE,Normal receive flow
+rule_48,receive_money,view_notification,False,SAFE,Normal receive flow
+rule_49,receive_money,view_notification,False,SAFE,Normal receive flow
